@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Repuestos",
     start_url: "/",
     display: "standalone",
-    background_color: "#f8fafc",
-    theme_color: "#1d4ed8",
+    background_color: "#070b14",
+    theme_color: "#070b14",
     icons: [{ src: "/icono.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }

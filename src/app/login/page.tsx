@@ -23,10 +23,13 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={enviar} className="tarjeta mx-auto max-w-sm space-y-4">
-      <h1 className="text-xl font-bold">Ingresar</h1>
+    <form onSubmit={enviar} className="tarjeta mx-auto mt-12 max-w-sm space-y-5 p-6">
+      <div>
+        <p className="subtitulo text-acento">Acceso restringido</p>
+        <h1 className="titulo mt-1">Ingresar</h1>
+      </div>
       {estado === "enviado" ? (
-        <p>Te mandamos un link a {email}. Abrilo desde este mismo dispositivo para entrar.</p>
+        <p className="text-slate-300">Te mandamos un link a {email}. Abrilo desde este mismo dispositivo para entrar.</p>
       ) : (
         <>
           <div>
@@ -36,9 +39,17 @@ export default function Login() {
           <button className="boton w-full" disabled={estado === "enviando"}>
             {estado === "enviando" ? "Enviando..." : "Enviarme el link de acceso"}
           </button>
-          {estado === "error" && <p className="text-sm text-red-700">No se pudo enviar: {error}. Sólo pueden entrar usuarios invitados.</p>}
+          {estado === "error" && <p className="text-sm text-red-400">{mensajeError(error)}</p>}
         </>
       )}
     </form>
   );
+}
+
+// Supabase responde en inglés; se traduce lo más común para que el usuario sepa qué hacer.
+function mensajeError(error: string): string {
+  const e = error.toLowerCase();
+  if (e.includes("rate limit")) return "Se pidieron demasiados links seguidos. Esperá unos minutos y volvé a intentar.";
+  if (e.includes("signups not allowed") || e.includes("not found")) return "Este mail no está habilitado. Pedile al administrador que te cargue como usuario.";
+  return `No se pudo enviar el link: ${error}`;
 }
