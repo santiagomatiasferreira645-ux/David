@@ -14,6 +14,17 @@ body {
   background-size: 32px 32px;
 }
 
+/* Marca de agua con las marcas de motores y reductores y los logos del grupo. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/marca-agua.png") repeat center / 900px auto;
+  opacity: 0.05;
+}
+
 @layer components {
   .campo {
     @apply w-full rounded-md border border-borde bg-fondo px-3 py-2 text-base text-texto placeholder:text-apagado/60 focus:border-acento focus:outline-none focus:ring-2 focus:ring-acento/20;

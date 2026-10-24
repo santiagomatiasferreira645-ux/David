@@ -14,6 +14,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#070b14" };
 
+const GRUPO = [
+  { src: "/logos/daysa.png", nombre: "DAYSA" },
+  { src: "/logos/tecnica-naval.png", nombre: "Técnica Naval y Servicios" },
+  { src: "/logos/spes.png", nombre: "SPES Supplier" },
+];
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${sans.variable} ${mono.variable}`}>
@@ -33,6 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </nav>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        <footer className="mx-auto max-w-6xl px-4 pb-8 pt-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 border-t border-borde pt-6 opacity-40">
+            {GRUPO.map((g) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={g.src} src={g.src} alt={g.nombre} title={g.nombre} className="h-12 w-auto" />
+            ))}
+          </div>
+        </footer>
       </body>
     </html>
   );
