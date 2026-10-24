@@ -28,18 +28,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-10 border-b border-borde bg-fondo/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="mr-auto flex items-center gap-2">
-              <svg viewBox="0 0 64 64" className="h-7 w-7 text-acento" aria-hidden>
-                <g fill="currentColor">
-                  <g transform="translate(27 27)">
-                    <ellipse cy="-8.5" rx="4.3" ry="7.6" />
-                    <ellipse cy="-8.5" rx="4.3" ry="7.6" transform="rotate(120)" />
-                    <ellipse cy="-8.5" rx="4.3" ry="7.6" transform="rotate(240)" />
-                  </g>
-                  <circle cx="27" cy="27" r="3.4" className="fill-fondo" />
-                  <circle cx="27" cy="27" r="1.8" />
+              <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden>
+                <g className="fill-acento">
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(0 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(45 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(90 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(135 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(180 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(225 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(270 32 32)" />
+                  <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(315 32 32)" />
                 </g>
-                <circle cx="27" cy="27" r="19" fill="none" stroke="currentColor" strokeWidth="3.6" />
-                <path d="M41 41l15 15" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
+                <circle cx="32" cy="32" r="21" fill="none" className="stroke-acento" strokeWidth="4" />
+                <g fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
+                  <circle cx="32" cy="19.5" r="3" />
+                  <path d="M32 22.5v22M25 28h14M20.5 36.5c2 6 6.5 8.5 11.5 8.5s9.5-2.5 11.5-8.5" />
+                  <path d="M18.5 39l2-3 3 2M45.5 39l-2-3-3 2" />
+                </g>
               </svg>
               <span className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-white">
                 Repuestos<span className="text-acento">.</span>
