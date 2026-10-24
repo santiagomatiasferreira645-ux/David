@@ -44,8 +44,11 @@ export default async function NuevaCotizacion({ searchParams }: { searchParams: 
 
   const hoy = new Date().toISOString().slice(0, 10);
   return (
-    <form action={guardar} className="tarjeta space-y-4">
-      <h1 className="text-xl font-bold">Cargar precio recibido</h1>
+    <form action={guardar} className="tarjeta space-y-5 p-5 sm:p-6">
+      <div>
+        <p className="subtitulo text-acento">Nueva cotización</p>
+        <h1 className="titulo mt-1">Cargar precio recibido</h1>
+      </div>
       <input type="hidden" name="busqueda" defaultValue={searchParams.busqueda} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">

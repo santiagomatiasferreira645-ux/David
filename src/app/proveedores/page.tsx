@@ -13,7 +13,9 @@ export default async function Proveedores({ searchParams }: { searchParams: { q?
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">Proveedores ({proveedores.length})</h1>
+        <h1 className="titulo">
+          Proveedores <span className="font-mono text-base text-acento">{proveedores.length}</span>
+        </h1>
         <form className="flex gap-2">
           <input name="q" defaultValue={q} placeholder="Empresa, marca o producto" className="campo w-56" />
           <input name="pais" defaultValue={searchParams.pais} placeholder="País" className="campo w-28" />
@@ -22,12 +24,12 @@ export default async function Proveedores({ searchParams }: { searchParams: { q?
       </div>
       <ul className="grid gap-3 sm:grid-cols-2">
         {proveedores.map((p) => (
-          <li key={p.id} className="tarjeta">
-            <Link href={`/proveedores/${p.id}`} className="font-semibold text-blue-800 hover:underline">
+          <li key={p.id} className="tarjeta transition hover:border-acento/40">
+            <Link href={`/proveedores/${p.id}`} className="font-semibold text-white hover:text-acento">
               {p.empresa}
             </Link>
-            <p className="text-sm text-slate-600">{[p.pais, p.tipo, p.marcas].filter(Boolean).join(" · ")}</p>
-            {p.productos && <p className="mt-1 line-clamp-2 text-sm">{p.productos}</p>}
+            <p className="mt-0.5 font-mono text-xs secundario">{[p.pais, p.tipo, p.marcas].filter(Boolean).join(" · ")}</p>
+            {p.productos && <p className="mt-2 line-clamp-2 text-sm text-slate-300">{p.productos}</p>}
           </li>
         ))}
       </ul>

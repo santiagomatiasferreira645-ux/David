@@ -21,64 +21,65 @@ export default async function DetalleProveedor({ params }: { params: { id: strin
   return (
     <div className="space-y-4">
       <div className="tarjeta space-y-1">
-        <h1 className="text-xl font-bold">{prov.empresa}</h1>
-        <p className="text-slate-600">{[prov.pais, prov.ciudad, prov.tipo, prov.marcas].filter(Boolean).join(" · ")}</p>
-        {prov.productos && <p>{prov.productos}</p>}
+        <p className="subtitulo">{prov.id}</p>
+        <h1 className="titulo text-2xl">{prov.empresa}</h1>
+        <p className="font-mono text-sm secundario">{[prov.pais, prov.ciudad, prov.tipo, prov.marcas].filter(Boolean).join(" · ")}</p>
+        {prov.productos && <p className="pt-1 text-slate-300">{prov.productos}</p>}
         {prov.web && (
-          <a href={prov.web.startsWith("http") ? prov.web : `https://${prov.web}`} target="_blank" rel="noreferrer" className="text-blue-700 underline">
+          <a href={prov.web.startsWith("http") ? prov.web : `https://${prov.web}`} target="_blank" rel="noreferrer" className="enlace font-mono text-sm">
             {prov.web}
           </a>
         )}
-        {prov.notas && <p className="whitespace-pre-line pt-2 text-sm text-slate-700">{prov.notas}</p>}
+        {prov.notas && <p className="mt-2 whitespace-pre-line border-t border-borde pt-3 text-sm secundario">{prov.notas}</p>}
       </div>
 
       <section className="tarjeta">
-        <h2 className="mb-2 font-semibold">Contactos</h2>
+        <h2 className="subtitulo mb-3">Contactos</h2>
         <ul className="space-y-2 text-sm">
           {contactos.map((x) => {
             const tel = normalizarTelefono(x.telefono);
             return (
               <li key={x.id} className="flex flex-wrap items-center gap-2">
                 <span className="mr-auto">
-                  {x.nombre} {x.cargo && <span className="text-slate-500">· {x.cargo}</span>}
+                  {x.nombre} {x.cargo && <span className="secundario">· {x.cargo}</span>}
                 </span>
                 {tel && x.tiene_whatsapp !== "No" && (
                   <a href={`https://wa.me/${tel.slice(1)}`} target="_blank" rel="noreferrer" className="boton-secundario">WhatsApp</a>
                 )}
-                {linkLlamada(x.telefono) && <a href={linkLlamada(x.telefono)!} className="boton-secundario">{tel}</a>}
+                {linkLlamada(x.telefono) && <a href={linkLlamada(x.telefono)!} className="boton-secundario font-mono">{tel}</a>}
                 {x.email && <a href={`mailto:${x.email}`} className="boton-secundario">{x.email}</a>}
               </li>
             );
           })}
-          {contactos.length === 0 && <li className="text-slate-500">Sin contactos.</li>}
+          {contactos.length === 0 && <li className="secundario">Sin contactos.</li>}
         </ul>
       </section>
 
       <section className="tarjeta overflow-x-auto">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-semibold">Precios registrados ({cotizaciones.length})</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="subtitulo">Precios registrados · {cotizaciones.length}</h2>
           <Link href={`/cotizaciones/nueva?proveedor=${prov.id}`} className="boton-secundario">Cargar precio</Link>
         </div>
-        <table className="w-full text-sm">
-          <thead className="text-left text-slate-500">
+        <table className="tabla">
+          <thead>
             <tr>
-              <th className="py-1 pr-2">Fecha</th>
-              <th className="py-1 pr-2">PN</th>
-              <th className="py-1 pr-2">Descripción</th>
-              <th className="py-1 pr-2">Precio</th>
-              <th className="py-1 pr-2">Condición</th>
-              <th className="py-1">Tipo</th>
+              <th>Fecha</th>
+              <th>PN</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Condición</th>
+              <th>Tipo</th>
             </tr>
           </thead>
           <tbody>
             {cotizaciones.map((x) => (
-              <tr key={x.id} className="border-t border-slate-100">
-                <td className="py-1 pr-2 whitespace-nowrap">{x.fecha}</td>
-                <td className="py-1 pr-2">{x.pn}</td>
-                <td className="py-1 pr-2">{x.descripcion}</td>
-                <td className="py-1 pr-2 whitespace-nowrap">{x.precio_unitario?.toLocaleString("es")} {x.moneda}</td>
-                <td className="py-1 pr-2">{x.condicion}</td>
-                <td className="py-1 text-slate-500">{x.tipo_precio}</td>
+              <tr key={x.id}>
+                <td className="whitespace-nowrap font-mono text-xs secundario">{x.fecha}</td>
+                <td className="pn">{x.pn}</td>
+                <td>{x.descripcion}</td>
+                <td className="whitespace-nowrap font-mono text-emerald-300">{x.precio_unitario?.toLocaleString("es")} {x.moneda}</td>
+                <td>{x.condicion}</td>
+                <td className="text-xs secundario">{x.tipo_precio}</td>
               </tr>
             ))}
           </tbody>
