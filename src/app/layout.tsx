@@ -9,6 +9,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--fuente-mono" });
 
 export const metadata: Metadata = {
   title: "Buscador de repuestos",
+  icons: { icon: "/icono.svg", apple: "/icono.svg" },
   description: "Búsqueda de repuestos navales por PN y marca, con historial de proveedores y cotizaciones.",
 };
 
@@ -27,9 +28,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-10 border-b border-borde bg-fondo/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link href="/" className="mr-auto flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 text-acento" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                <circle cx="12" cy="12" r="3.2" />
-                <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" />
+              <svg viewBox="0 0 64 64" className="h-7 w-7 text-acento" aria-hidden>
+                <g fill="currentColor">
+                  <g transform="translate(27 27)">
+                    <ellipse cy="-8.5" rx="4.3" ry="7.6" />
+                    <ellipse cy="-8.5" rx="4.3" ry="7.6" transform="rotate(120)" />
+                    <ellipse cy="-8.5" rx="4.3" ry="7.6" transform="rotate(240)" />
+                  </g>
+                  <circle cx="27" cy="27" r="3.4" className="fill-fondo" />
+                  <circle cx="27" cy="27" r="1.8" />
+                </g>
+                <circle cx="27" cy="27" r="19" fill="none" stroke="currentColor" strokeWidth="3.6" />
+                <path d="M41 41l15 15" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
               </svg>
               <span className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-white">
                 Repuestos<span className="text-acento">.</span>
