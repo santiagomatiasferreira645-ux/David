@@ -1,5 +1,6 @@
 import "server-only";
 import { armarResultados, type Resultado } from "./busqueda";
+import { variantesMarca } from "./marcas";
 import { normalizarPn } from "./pn";
 import { clienteServidor } from "./supabase/servidor";
 import type { Busqueda, ConsultaPn, Contacto, Cotizacion, Proveedor } from "./tipos";
@@ -27,7 +28,13 @@ export async function buscar(pn: string, marca: string): Promise<Resultado[]> {
 
   const [porPn, porMarca] = await Promise.all([
     ids.size ? supabase.from("proveedores").select("*").in("id", [...ids]) : Promise.resolve({ data: [], error: null }),
-    marcaL ? supabase.from("proveedores").select("*").ilike("marcas", `%${marcaL}%`).limit(300) : Promise.resolve({ data: [], error: null }),
+    marcaL
+      ? supabase
+          .from("proveedores")
+          .select("*")
+          .or(variantesMarca(marcaL).map((v) => `marcas.ilike.%${limpiar(v)}%`).join(","))
+          .limit(500)
+      : Promise.resolve({ data: [], error: null }),
   ]);
   if (porPn.error) throw porPn.error;
   if (porMarca.error) throw porMarca.error;

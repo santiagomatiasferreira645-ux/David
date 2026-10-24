@@ -1,3 +1,4 @@
+import { coincideMarca } from "./marcas";
 import { normalizarPn } from "./pn";
 import type { ConsultaPn, Contacto, Cotizacion, Proveedor } from "./tipos";
 
@@ -26,8 +27,7 @@ export function coincidePn(pnGuardado: string | null, buscado: string): boolean 
 }
 
 export function manejaMarca(marcas: string | null, marca: string): boolean {
-  if (!marcas || !marca) return false;
-  return marcas.toLowerCase().includes(marca.trim().toLowerCase());
+  return coincideMarca(marcas, marca);
 }
 
 // Contacto más útil primero: canal preferido definido, con WhatsApp, con teléfono, con email.
