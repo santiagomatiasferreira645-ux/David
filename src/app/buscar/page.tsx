@@ -6,6 +6,7 @@ import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
 import { CambiarEstado } from "./cambiar-estado";
+import { SugerenciasIA } from "./sugerencias-ia";
 
 type Params = { pn?: string; marca?: string; cantidad?: string; cliente?: string; id?: string };
 
@@ -33,6 +34,11 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   const marca = busqueda.marca ?? "";
   const resultados = await buscar(busqueda.pn, marca);
   const conPrecio = resultados.filter((r) => r.ultimaCotizacion).length;
+  // Si nadie cotizó ni fue consultado por este PN, la IA busca alternativas en la web sola.
+  const pnRegistrado = resultados.some((r) => r.motivo !== "maneja_la_marca");
+  const ia = (
+    <SugerenciasIA busquedaId={busqueda.id} pn={busqueda.pn} marca={marca} cantidad={busqueda.cantidad} automatica={!pnRegistrado} />
+  );
 
   return (
     <div className="space-y-4">
@@ -68,9 +74,13 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
       </div>
 
       {resultados.length === 0 && (
-        <p className="tarjeta secundario">
-          No hay proveedores con este PN ni con esta marca en la base. Probá con otra marca o cargá proveedores nuevos.
-        </p>
+        <p className="tarjeta secundario">No hay proveedores con este PN ni con esta marca en la base.</p>
+      )}
+
+      {!pnRegistrado && ia}
+
+      {!pnRegistrado && resultados.length > 0 && (
+        <p className="subtitulo pt-2">En la base: proveedores que manejan la marca</p>
       )}
 
       <ul className="space-y-3">
@@ -145,6 +155,8 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
           );
         })}
       </ul>
+
+      {pnRegistrado && ia}
     </div>
   );
 }
