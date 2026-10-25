@@ -38,9 +38,12 @@ export function HojasDelPn({ pn, hojas }: { pn: string; hojas: Hoja[] }) {
           , con el botón &quot;Subir PDF&quot;.
         </p>
       )}
-      <Link href={hoja.link} className="enlace inline-block text-sm">
-        Abrir en pantalla completa
-      </Link>
+      <p className="text-xs secundario">
+        Con ‹ y › pasás a la hoja anterior o siguiente, donde suele estar el dibujo de referencia.{" "}
+        <Link href={hoja.link} className="enlace">
+          Abrir en pantalla completa
+        </Link>
+      </p>
     </div>
   );
 }

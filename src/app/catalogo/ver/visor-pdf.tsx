@@ -13,9 +13,12 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
   const [pagina, setPagina] = useState(paginaInicial);
   const [zoom, setZoom] = useState(1);
 
+  // En el celular la hoja del PN se ve ampliada sobre el PN; las demás (dibujos, listas vecinas) enteras.
+  const zoomCelular = (n: number) => (pn && n === paginaInicial ? 2.5 : 1);
   useEffect(() => {
-    if (pn && window.innerWidth < 640) setZoom(2.5);
-  }, [pn]);
+    if (window.innerWidth < 640) setZoom(zoomCelular(paginaInicial));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pn, paginaInicial]);
   const [estado, setEstado] = useState<"cargando" | "listo" | "error">("cargando");
   const [marcas, setMarcas] = useState<number | null>(null);
 
@@ -59,11 +62,12 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
           setMarcas(recuadros.length);
           // Lleva el primer recuadro al centro de la caja (se nota con zoom, sobre todo en el celular).
           const r = recuadros[0];
-          if (r && caja.current) {
-            caja.current.scrollTo({
-              left: (r.x + r.ancho / 2) / dpr - caja.current.clientWidth / 2,
-              top: (r.y + r.alto / 2) / dpr - caja.current.clientHeight / 2,
-            });
+          if (caja.current) {
+            caja.current.scrollTo(
+              r
+                ? { left: (r.x + r.ancho / 2) / dpr - caja.current.clientWidth / 2, top: (r.y + r.alto / 2) / dpr - caja.current.clientHeight / 2 }
+                : { left: 0, top: 0 },
+            );
           }
         })
         .catch(() => {});
@@ -72,20 +76,24 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
   }, [pdf, pagina, zoom, pn]);
 
   const total = pdf?.numPages ?? 0;
-  const ir = (n: number) => setPagina(Math.min(Math.max(1, n), total || n));
+  const ir = (n: number) => {
+    const destino = Math.min(Math.max(1, n), total || n);
+    setPagina(destino);
+    if (window.innerWidth < 640) setZoom(zoomCelular(destino));
+  };
 
   return (
     <div className="space-y-2">
       <div className="tarjeta flex flex-wrap items-center gap-2 p-2">
-        <button onClick={() => ir(pagina - 1)} disabled={pagina <= 1} className="boton-secundario px-3">
-          ‹
+        <button onClick={() => ir(pagina - 1)} disabled={pagina <= 1} className="boton-secundario px-3" aria-label="Hoja anterior">
+          ‹ <span className="hidden sm:inline">Anterior</span>
         </button>
         <span className="font-mono text-sm">
           Pág. <span className="text-white">{pagina}</span>
           {total ? <span className="secundario"> / {total}</span> : null}
         </span>
-        <button onClick={() => ir(pagina + 1)} disabled={!!total && pagina >= total} className="boton-secundario px-3">
-          ›
+        <button onClick={() => ir(pagina + 1)} disabled={!!total && pagina >= total} className="boton-secundario px-3" aria-label="Hoja siguiente">
+          <span className="hidden sm:inline">Siguiente</span> ›
         </button>
         <span className="mx-1 h-5 w-px bg-borde" />
         <button onClick={() => setZoom((z) => Math.max(1, z - 0.5))} disabled={zoom <= 1} className="boton-secundario px-3" aria-label="Alejar">
@@ -94,8 +102,13 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
         <button onClick={() => setZoom((z) => Math.min(4, z + 0.5))} className="boton-secundario px-3" aria-label="Acercar">
           +
         </button>
-        {pn && marcas !== null && (
-          <span className="font-mono text-xs secundario">{marcas ? `${pn} marcado en la hoja` : `${pn} no se pudo marcar (hoja escaneada o en otra página)`}</span>
+        {pn && pagina !== paginaInicial && (
+          <button onClick={() => ir(paginaInicial)} className="chip border-acento/40 bg-acento/10 py-1.5 text-acento">
+            Volver a la hoja del PN
+          </button>
+        )}
+        {pn && marcas !== null && (marcas > 0 || pagina === paginaInicial) && (
+          <span className="font-mono text-xs secundario">{marcas ? `${pn} marcado en la hoja` : `${pn} no se pudo marcar (hoja escaneada)`}</span>
         )}
         <a href={`${url}#page=${pagina}`} target="_blank" rel="noreferrer" className="enlace ml-auto text-sm">
           Abrir PDF completo
