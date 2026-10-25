@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { marcarPn } from "@/lib/pdf-texto";
 
-// Muestra una página del PDF. pdf.js pide solo los pedazos del archivo que necesita, así no se baja el manual entero.
-export function VisorPdf({ url, paginaInicial }: { url: string; paginaInicial: number }) {
+// Muestra una página del PDF y recuadra el PN si se pasa. pdf.js pide solo los pedazos del archivo que necesita, así no se baja el manual entero.
+export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicial: number; pn?: string }) {
   const lienzo = useRef<HTMLCanvasElement>(null);
   const caja = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [pagina, setPagina] = useState(paginaInicial);
   const [zoom, setZoom] = useState(1);
   const [estado, setEstado] = useState<"cargando" | "listo" | "error">("cargando");
+  const [marcas, setMarcas] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -43,10 +45,15 @@ export function VisorPdf({ url, paginaInicial }: { url: string; paginaInicial: n
       c.style.width = `${ancho * zoom}px`;
       const render = p.render({ canvasContext: c.getContext("2d")!, viewport: vista });
       tarea = render;
-      render.promise.then(() => setEstado("listo")).catch(() => {});
+      render.promise
+        .then(async () => {
+          setEstado("listo");
+          setMarcas(pn ? await marcarPn(p, vista.transform, c.getContext("2d")!, pn) : null);
+        })
+        .catch(() => {});
     });
     return () => tarea?.cancel();
-  }, [pdf, pagina, zoom]);
+  }, [pdf, pagina, zoom, pn]);
 
   const total = pdf?.numPages ?? 0;
   const ir = (n: number) => setPagina(Math.min(Math.max(1, n), total || n));
@@ -71,6 +78,9 @@ export function VisorPdf({ url, paginaInicial }: { url: string; paginaInicial: n
         <button onClick={() => setZoom((z) => Math.min(3, z + 0.5))} className="boton-secundario px-3" aria-label="Acercar">
           +
         </button>
+        {pn && marcas !== null && (
+          <span className="font-mono text-xs secundario">{marcas ? `${pn} marcado en la hoja` : `${pn} no se pudo marcar (hoja escaneada o en otra página)`}</span>
+        )}
         <a href={`${url}#page=${pagina}`} target="_blank" rel="noreferrer" className="enlace ml-auto text-sm">
           Abrir PDF completo
         </a>
