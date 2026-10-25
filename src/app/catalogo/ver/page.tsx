@@ -16,10 +16,14 @@ export default async function VerPagina({ searchParams }: { searchParams: { arch
         {searchParams.pn && <span className="pn text-sm secundario">Buscando {searchParams.pn}</span>}
       </div>
       {url ? (
-        <VisorPdf url={url} paginaInicial={pagina} />
+        <VisorPdf url={url} paginaInicial={pagina} pn={searchParams.pn} />
       ) : (
         <p className="tarjeta text-sm secundario">
-          Todavía no está subido el PDF del catálogo. Hay que subirlo en Supabase, en Storage &gt; catalogos, con el nombre {archivo || "del archivo"}.
+          Todavía no está subido el PDF de este catálogo. Se sube desde{" "}
+          <Link href="/catalogo/cargar" className="enlace">
+            Catálogos &gt; Cargar catálogo
+          </Link>
+          , con el botón &quot;Subir PDF&quot;.
         </p>
       )}
     </div>
