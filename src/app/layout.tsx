@@ -8,7 +8,8 @@ const sans = Inter({ subsets: ["latin"], variable: "--fuente-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--fuente-mono" });
 
 export const metadata: Metadata = {
-  title: "Buscador de repuestos",
+  title: "BUSCADOR DE REPUESTOS",
+  appleWebApp: { title: "BUSCADOR DE REPUESTOS" },
   icons: { icon: "/icono.svg", apple: "/icono.svg" },
   description: "Búsqueda de repuestos navales por PN y marca, con historial de proveedores y cotizaciones.",
 };
@@ -46,8 +47,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <path d="M18.5 39l2-3 3 2M45.5 39l-2-3-3 2" />
                 </g>
               </svg>
-              <span className="font-mono text-sm font-semibold uppercase tracking-[0.2em] text-white">
-                Repuestos<span className="text-acento">.</span>
+              <span className="font-mono text-sm font-semibold uppercase tracking-[0.12em] text-white sm:tracking-[0.2em]">
+                Buscador de repuestos<span className="text-acento">.</span>
               </span>
             </Link>
             <Menu />

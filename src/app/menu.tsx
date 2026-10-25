@@ -13,7 +13,8 @@ const MENU = [
 
 export function Menu() {
   const ruta = usePathname();
-  const activo = (href: string) => (href === "/" ? ruta === "/" || ruta.startsWith("/buscar") : ruta.startsWith(href));
+  const activo = (href: string) =>
+    href === "/" ? ruta === "/" || ruta.startsWith("/buscar") : ruta.startsWith(href) || (href === "/proveedores" && ruta.startsWith("/repuestos"));
   const clase = (href: string) =>
     `whitespace-nowrap rounded-md px-2 py-1.5 sm:px-3 text-[13px] sm:text-sm font-medium transition ${
       activo(href) ? "bg-acento/10 text-acento ring-1 ring-inset ring-acento/30" : "text-apagado hover:text-texto"
