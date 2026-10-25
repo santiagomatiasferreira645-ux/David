@@ -33,7 +33,7 @@ body::before {
     @apply campo font-mono uppercase tracking-wider;
   }
   .etiqueta {
-    @apply mb-1 block font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-apagado;
+    @apply mb-1 block font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-apagado sm:tracking-[0.14em];
   }
   .boton {
     @apply inline-flex items-center justify-center gap-2 rounded-md bg-acento px-4 py-2 font-semibold text-fondo shadow-[0_0_20px_-6px_rgba(34,211,238,0.7)] transition hover:bg-cyan-300 disabled:opacity-50;
@@ -48,7 +48,7 @@ body::before {
     @apply text-xl font-semibold tracking-tight text-white;
   }
   .subtitulo {
-    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-apagado;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-apagado sm:tracking-[0.14em];
   }
   .secundario {
     @apply text-apagado;

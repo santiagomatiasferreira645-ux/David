@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { normalizarPn } from "@/lib/pn";
 import { clienteServidor } from "@/lib/supabase/servidor";
 
 const MARCAS = ["EMD", "CAT", "MAK", "GE", "John Deere", "Cummins", "Detroit", "Volvo Penta", "MTU", "Wärtsilä", "Reintjes", "Twin Disc", "ZF", "Weichai", "Perkins"];
@@ -6,16 +7,27 @@ const MARCAS = ["EMD", "CAT", "MAK", "GE", "John Deere", "Cummins", "Detroit", "
 export default async function Inicio() {
   const supabase = clienteServidor();
   const [{ data: recientes }, prov, cot, abiertas] = await Promise.all([
-    supabase.from("busquedas").select("id, pn, marca, estado, creado_en").order("creado_en", { ascending: false }).limit(6),
+    supabase.from("busquedas").select("id, pn, marca, estado, creado_en").order("creado_en", { ascending: false }).limit(30),
     supabase.from("proveedores").select("id", { count: "exact", head: true }),
     supabase.from("cotizaciones").select("id", { count: "exact", head: true }),
     supabase.from("busquedas").select("id", { count: "exact", head: true }).eq("estado", "abierta"),
   ]);
 
+  // El mismo PN escrito distinto (8N-7005 / 8n7005) cuenta una sola vez.
+  const vistos = new Set<string>();
+  const ultimas = (recientes ?? [])
+    .filter((b) => {
+      const clave = `${normalizarPn(b.pn)}|${(b.marca ?? "").toLowerCase()}`;
+      if (vistos.has(clave)) return false;
+      vistos.add(clave);
+      return true;
+    })
+    .slice(0, 6);
+
   const cifras = [
-    { texto: "Proveedores", valor: prov.count },
-    { texto: "Precios registrados", valor: cot.count },
-    { texto: "Búsquedas abiertas", valor: abiertas.count },
+    { texto: "Proveedores", corto: "Provee\u00addores", valor: prov.count },
+    { texto: "Precios registrados", corto: "Precios", valor: cot.count },
+    { texto: "Búsquedas abiertas", corto: "Abiertas", valor: abiertas.count },
   ];
 
   return (
@@ -57,20 +69,23 @@ export default async function Inicio() {
         </button>
       </form>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {cifras.map((c) => (
-          <div key={c.texto} className="tarjeta p-3 sm:p-4">
-            <p className="subtitulo">{c.texto}</p>
+          <div key={c.texto} className="tarjeta flex min-w-0 flex-col justify-between px-2.5 py-3 sm:p-4">
+            <p className="text-[0.6875rem] leading-tight text-apagado sm:font-mono sm:font-medium sm:uppercase sm:tracking-[0.14em]">
+              <span className="sm:hidden">{c.corto}</span>
+              <span className="hidden sm:inline">{c.texto}</span>
+            </p>
             <p className="mt-1 font-mono text-2xl font-semibold text-white">{c.valor ?? "–"}</p>
           </div>
         ))}
       </div>
 
-      {recientes && recientes.length > 0 && (
+      {ultimas.length > 0 && (
         <section>
           <h2 className="subtitulo mb-2">Últimas búsquedas</h2>
           <ul className="flex flex-wrap gap-2">
-            {recientes.map((b) => (
+            {ultimas.map((b) => (
               <li key={b.id}>
                 <Link href={`/buscar?id=${b.id}`} className="boton-secundario">
                   <span className="pn">{b.pn}</span> {b.marca && <span className="secundario">· {b.marca}</span>}
