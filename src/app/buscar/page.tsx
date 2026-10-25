@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { horaLocal, idiomaDe, linkLlamada, linkMail, linkWhatsapp } from "@/lib/contacto";
 import { buscar, obtenerBusqueda } from "@/lib/datos";
+import { imagenesDelPn } from "@/lib/imagenes";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
 import { CambiarEstado } from "./cambiar-estado";
+import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
 
 type Params = { pn?: string; marca?: string; cantidad?: string; cliente?: string; id?: string };
@@ -32,7 +34,7 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   const busqueda = await obtenerBusqueda(Number(searchParams.id));
   if (!busqueda) redirect("/");
   const marca = busqueda.marca ?? "";
-  const resultados = await buscar(busqueda.pn, marca);
+  const [resultados, imagenes] = await Promise.all([buscar(busqueda.pn, marca), imagenesDelPn(busqueda.pn)]);
   const conPrecio = resultados.filter((r) => r.ultimaCotizacion).length;
   // Si nadie cotizó ni fue consultado por este PN, la IA busca alternativas en la web sola.
   const pnRegistrado = resultados.some((r) => r.motivo !== "maneja_la_marca");
@@ -57,6 +59,9 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
               <span className="text-emerald-300">{conPrecio}</span> <span className="secundario">con precio anterior</span>
             </span>
             <Estado estado={busqueda.estado} />
+          </div>
+          <div className="mt-4">
+            <ImagenesPn pn={busqueda.pn} imagenes={imagenes} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

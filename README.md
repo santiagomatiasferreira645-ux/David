@@ -9,6 +9,7 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 - **Buscar**: PN + marca + cantidad. Ordena primero quien ya cotizó ese PN (con el último precio y la fecha), después a quien ya se le consultó y por último quien maneja la marca. Muestra la hora local del proveedor y si está en horario comercial.
 - **Búsqueda con IA**: si el PN no está registrado en la base, la IA busca en la web proveedores alternativos (con el PN exacto, distribuidores de la marca, usados o reacondicionados) y muestra sus contactos. Con un botón se agregan a la base. Si el PN ya está registrado, la búsqueda con IA queda disponible con un botón. Los resultados se guardan 30 días para no repetir la consulta.
 - **Marcas equivalentes**: CAT y Caterpillar, GE y General Electric, Wärtsilä y Wartsila, etc. se tratan como la misma marca (lista en `src/lib/marcas.ts`).
+- **Fotos de referencia del PN**: en los resultados se agregan fotos del repuesto (desde el celular se puede sacar la foto en el momento). Quedan guardadas por PN y aparecen cada vez que se lo busca.
 - **Descargar Excel**: una fila por proveedor, con links de WhatsApp, llamada y mail, y una columna de estado para seguir la consulta.
 - **Historial**: todas las búsquedas con su estado (abierta, cotizada, comprada, perdida).
 - **Proveedores**: ficha con contactos y todos los precios registrados.
@@ -26,6 +27,7 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase > Project Settings > API).
 5. **Búsqueda con IA**: ejecutar `supabase/migrations/0002_sugerencias_ia.sql` en el SQL Editor, crear una clave en console.anthropic.com
    y cargarla en Vercel como `ANTHROPIC_API_KEY` (sin `NEXT_PUBLIC_`: queda solo en el servidor). Después, Redeploy.
+6. **Fotos de referencia**: ejecutar `supabase/migrations/0003_imagenes_pn.sql` en el SQL Editor (crea el espacio privado `imagenes-pn` en Storage).
 
 ## Desarrollo
 
