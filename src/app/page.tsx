@@ -25,7 +25,7 @@ export default async function Inicio() {
     .slice(0, 6);
 
   const cifras = [
-    { texto: "Proveedores", corto: "Provee\u00addores", valor: prov.count },
+    { texto: "Proveedores", corto: "Proveedores", valor: prov.count },
     { texto: "Precios registrados", corto: "Precios", valor: cot.count },
     { texto: "Búsquedas abiertas", corto: "Abiertas", valor: abiertas.count },
   ];
@@ -71,8 +71,8 @@ export default async function Inicio() {
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {cifras.map((c) => (
-          <div key={c.texto} className="tarjeta flex min-w-0 flex-col justify-between px-2.5 py-3 sm:p-4">
-            <p className="text-[0.6875rem] leading-tight text-apagado sm:font-mono sm:font-medium sm:uppercase sm:tracking-[0.14em]">
+          <div key={c.texto} className="tarjeta min-w-0 px-1 py-3 text-center sm:p-4">
+            <p className="whitespace-nowrap font-mono text-[0.625rem] font-medium uppercase tracking-[0.02em] text-apagado sm:text-[11px] sm:tracking-[0.14em]">
               <span className="sm:hidden">{c.corto}</span>
               <span className="hidden sm:inline">{c.texto}</span>
             </p>
