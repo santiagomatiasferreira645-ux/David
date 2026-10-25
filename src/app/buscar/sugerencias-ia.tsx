@@ -58,7 +58,7 @@ export function SugerenciasIA(props: { busquedaId: number; pn: string; marca: st
       <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-acento to-fuchsia-400" aria-hidden />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="subtitulo text-acento">Búsqueda con IA</p>
+          <p className="subtitulo text-amarillo">Búsqueda con IA</p>
           <h2 className="mt-1 font-semibold text-white">Proveedores alternativos en la web</h2>
           <p className="mt-1 text-sm secundario">
             {props.automatica

@@ -26,7 +26,7 @@ export default async function NuevoRepuesto({ searchParams }: { searchParams: { 
   return (
     <form action={guardar} className="tarjeta space-y-5 p-5 sm:p-6">
       <div>
-        <p className="subtitulo text-acento">Repuestos</p>
+        <p className="subtitulo text-amarillo">Repuestos</p>
         <h1 className="titulo mt-1">Agregar un PN</h1>
         <p className="mt-1 text-sm secundario">El PN queda registrado con el proveedor que lo maneja. Si ya tenés el precio, usá Cargar precio.</p>
       </div>

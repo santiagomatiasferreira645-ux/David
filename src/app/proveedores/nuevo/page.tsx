@@ -48,7 +48,7 @@ export default function NuevoProveedor({ searchParams }: { searchParams: { error
   return (
     <form action={guardar} className="tarjeta space-y-5 p-5 sm:p-6">
       <div>
-        <p className="subtitulo text-acento">Nuevo proveedor</p>
+        <p className="subtitulo text-amarillo">Nuevo proveedor</p>
         <h1 className="titulo mt-1">Dar de alta un proveedor</h1>
       </div>
       {searchParams.existente && (

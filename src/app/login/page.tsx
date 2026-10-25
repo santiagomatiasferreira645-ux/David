@@ -42,7 +42,7 @@ export default function Login() {
   return (
     <form onSubmit={enviar} className="tarjeta mx-auto mt-12 max-w-sm space-y-5 p-6">
       <div>
-        <p className="subtitulo text-acento">Acceso restringido</p>
+        <p className="subtitulo text-amarillo">Acceso restringido</p>
         <h1 className="titulo mt-1">Ingresar</h1>
       </div>
       {estado === "enviado" ? (

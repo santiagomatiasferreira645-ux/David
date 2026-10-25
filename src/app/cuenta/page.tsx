@@ -48,7 +48,7 @@ export default function Cuenta() {
     <div className="mx-auto mt-6 max-w-sm space-y-4">
       <form onSubmit={guardar} className="tarjeta space-y-5 p-6">
         <div>
-          <p className="subtitulo text-acento">Mi cuenta</p>
+          <p className="subtitulo text-amarillo">Mi cuenta</p>
           <h1 className="titulo mt-1">Contraseña</h1>
           {email && <p className="mt-1 font-mono text-sm secundario">{email}</p>}
         </div>

@@ -210,7 +210,7 @@ export default function CargarCatalogo() {
     <div className="space-y-4">
       <form onSubmit={empezar} className="tarjeta space-y-5 p-5 sm:p-6">
         <div>
-          <p className="subtitulo text-acento">Catálogos de fábrica</p>
+          <p className="subtitulo text-amarillo">Catálogos de fábrica</p>
           <h1 className="titulo mt-1">Cargar un catálogo</h1>
           <p className="mt-1 text-sm secundario">
             Elegí el PDF del manual de repuestos. La app lo guarda, lee cada página con IA y arma la lista de PN con su página. Un manual de 500 páginas tarda unos 15 minutos: dejá esta pantalla abierta hasta que termine.

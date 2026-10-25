@@ -25,16 +25,16 @@ export default async function Inicio() {
     .slice(0, 6);
 
   const cifras = [
-    { texto: "Proveedores", corto: "Proveedores", valor: prov.count },
-    { texto: "Precios registrados", corto: "Precios", valor: cot.count },
-    { texto: "Búsquedas abiertas", corto: "Abiertas", valor: abiertas.count },
+    { texto: "Proveedores", corto: "Proveedores", valor: prov.count, linea: "border-t-acento/70" },
+    { texto: "Precios registrados", corto: "Precios", valor: cot.count, linea: "border-t-verde/70" },
+    { texto: "Búsquedas abiertas", corto: "Abiertas", valor: abiertas.count, linea: "border-t-amarillo/70" },
   ];
 
   return (
     <div className="space-y-6">
       <form action="/buscar" className="tarjeta space-y-5 p-5 sm:p-6">
         <div>
-          <p className="subtitulo text-acento">Motor de búsqueda</p>
+          <p className="subtitulo text-amarillo">Motor de búsqueda</p>
           <h1 className="titulo mt-1 text-2xl">Buscar repuesto por PN</h1>
         </div>
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
@@ -77,7 +77,7 @@ export default async function Inicio() {
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {cifras.map((c) => (
-          <div key={c.texto} className="tarjeta min-w-0 px-1 py-3 text-center sm:p-4">
+          <div key={c.texto} className={`tarjeta min-w-0 border-t-2 px-1 py-3 text-center sm:p-4 ${c.linea}`}>
             <p className="whitespace-nowrap font-mono text-[0.625rem] font-medium uppercase tracking-[0.02em] text-apagado sm:text-[11px] sm:tracking-[0.14em]">
               <span className="sm:hidden">{c.corto}</span>
               <span className="hidden sm:inline">{c.texto}</span>
@@ -89,7 +89,7 @@ export default async function Inicio() {
 
       {ultimas.length > 0 && (
         <section>
-          <h2 className="subtitulo mb-2">Últimas búsquedas</h2>
+          <h2 className="subtitulo mb-2 text-amarillo/80">Últimas búsquedas</h2>
           <ul className="flex flex-wrap gap-2">
             {ultimas.map((b) => (
               <li key={b.id}>
