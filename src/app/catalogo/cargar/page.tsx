@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { pareceListaDePartes, textoDePagina } from "@/lib/pdf-texto";
 import { clienteNavegador } from "@/lib/supabase/navegador";
+import { ImportarCatalogos } from "./importar";
 
 type Catalogo = { id: number; nombre: string; archivo: string; paginas: number | null; pagina_procesada: number; estado: "procesando" | "listo" };
 type Tanda = { pagina: number; texto: string }[];
@@ -54,6 +55,8 @@ async function procesarTanda(catalogoId: number, paginas: Tanda): Promise<number
 
 export default function CargarCatalogo() {
   const [catalogos, setCatalogos] = useState<Catalogo[]>([]);
+  const [pdfs, setPdfs] = useState<Set<string> | null>(null);
+  const [subiendoPdf, setSubiendoPdf] = useState("");
   const [nombre, setNombre] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [estado, setEstado] = useState<"" | "subiendo" | "leyendo" | "procesando" | "listo" | "error">("");
@@ -62,8 +65,24 @@ export default function CargarCatalogo() {
   const cancelar = useRef(false);
 
   async function cargarLista() {
-    const { data } = await clienteNavegador().from("catalogos").select("*").order("creado_en");
+    const supabase = clienteNavegador();
+    const [{ data }, { data: guardados }] = await Promise.all([
+      supabase.from("catalogos").select("*").order("creado_en"),
+      supabase.storage.from(BUCKET).list("", { limit: 1000 }),
+    ]);
     setCatalogos((data ?? []) as Catalogo[]);
+    setPdfs(guardados ? new Set(guardados.map((o) => o.name)) : null);
+  }
+
+  // Sube el PDF de un catálogo importado sin él, con el nombre que esperan los links "Ver pág.".
+  async function subirPdf(c: Catalogo, f: File | undefined) {
+    if (!f) return;
+    if (f.size > 50 * 1024 * 1024) return alert("El PDF pesa más de 50 MB.");
+    setSubiendoPdf(c.archivo);
+    const { error } = await clienteNavegador().storage.from(BUCKET).upload(c.archivo, f, { contentType: "application/pdf", upsert: true });
+    setSubiendoPdf("");
+    if (error) alert(`No se pudo guardar el PDF: ${error.message}`);
+    cargarLista();
   }
   useEffect(() => {
     cargarLista();
@@ -244,6 +263,8 @@ export default function CargarCatalogo() {
         {mensaje && <p className={`text-sm ${estado === "error" ? "text-red-400" : "text-emerald-300"}`}>{mensaje}</p>}
       </form>
 
+      <ImportarCatalogos existentes={catalogos.map((c) => c.nombre)} ocupado={ocupado} alTerminar={cargarLista} />
+
       <section className="tarjeta">
         <p className="subtitulo mb-3">Catálogos cargados</p>
         <ul className="divide-y divide-borde/60">
@@ -254,8 +275,15 @@ export default function CargarCatalogo() {
                 <span className="ml-2 font-mono text-xs secundario">
                   {c.paginas} págs.
                   {c.estado === "procesando" && <span className="text-amber-300"> · a medias, hasta la pág. {c.pagina_procesada}</span>}
+                  {pdfs && !pdfs.has(c.archivo) && <span className="text-amber-300"> · falta el PDF</span>}
                 </span>
               </span>
+              {pdfs && !pdfs.has(c.archivo) && (
+                <label className={`chip cursor-pointer border-acento/40 text-acento ${ocupado ? "pointer-events-none opacity-50" : ""}`}>
+                  {subiendoPdf === c.archivo ? "Subiendo..." : "Subir PDF"}
+                  <input type="file" accept="application/pdf" className="hidden" onChange={(e) => subirPdf(c, e.target.files?.[0])} />
+                </label>
+              )}
               <button onClick={() => borrar(c)} disabled={ocupado} className="chip border-red-400/40 text-red-300">
                 Borrar
               </button>
