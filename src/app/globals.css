@@ -9,12 +9,12 @@ html {
 body {
   @apply min-h-screen bg-fondo font-sans text-texto antialiased;
   /* Cuadrícula tenue de plano técnico. */
-  background-image: linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
-/* Marca de agua con las marcas de motores y reductores y los logos del grupo. */
+/* Marca de agua con las marcas de motores y reductores que vendemos. */
 body::before {
   content: "";
   position: fixed;
@@ -22,7 +22,7 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background: url("/marca-agua.png") repeat center / 900px auto;
-  opacity: 0.05;
+  opacity: 0.08;
 }
 
 @layer components {
