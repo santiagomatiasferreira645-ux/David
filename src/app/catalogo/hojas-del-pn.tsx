@@ -15,12 +15,12 @@ export function HojasDelPn({ pn, hojas }: { pn: string; hojas: Hoja[] }) {
   return (
     <div className="space-y-2">
       {hojas.length > 1 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
           {hojas.map((h, i) => (
             <button
               key={h.id}
               onClick={() => setElegida(i)}
-              className={`chip py-1.5 ${i === elegida ? "border-acento bg-acento/15 text-acento" : "border-borde text-apagado"}`}
+              className={`chip shrink-0 whitespace-nowrap py-1.5 ${i === elegida ? "border-acento bg-acento/15 text-acento" : "border-borde text-apagado"}`}
             >
               {h.catalogo} · pág. {h.pagina}
             </button>

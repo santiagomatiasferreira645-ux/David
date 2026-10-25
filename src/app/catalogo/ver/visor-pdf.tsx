@@ -4,13 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { marcarPn } from "@/lib/pdf-texto";
 
-// Muestra una página del PDF y recuadra el PN si se pasa. pdf.js pide solo los pedazos del archivo que necesita, así no se baja el manual entero.
+// Muestra una página del PDF y recuadra el PN si se pasa. En el celular arranca ampliada y centrada en el PN, para que se lea.
+// pdf.js pide solo los pedazos del archivo que necesita, así no se baja el manual entero.
 export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicial: number; pn?: string }) {
   const lienzo = useRef<HTMLCanvasElement>(null);
   const caja = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [pagina, setPagina] = useState(paginaInicial);
   const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    if (pn && window.innerWidth < 640) setZoom(2.5);
+  }, [pn]);
   const [estado, setEstado] = useState<"cargando" | "listo" | "error">("cargando");
   const [marcas, setMarcas] = useState<number | null>(null);
 
@@ -37,8 +42,9 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
     setEstado("cargando");
     pdf.getPage(pagina).then((p) => {
       const ancho = caja.current!.clientWidth;
+      const dpr = window.devicePixelRatio || 1;
       const base = p.getViewport({ scale: 1 });
-      const vista = p.getViewport({ scale: (ancho / base.width) * zoom * (window.devicePixelRatio || 1) });
+      const vista = p.getViewport({ scale: (ancho / base.width) * zoom * dpr });
       const c = lienzo.current!;
       c.width = vista.width;
       c.height = vista.height;
@@ -48,7 +54,17 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
       render.promise
         .then(async () => {
           setEstado("listo");
-          setMarcas(pn ? await marcarPn(p, vista.transform, c.getContext("2d")!, pn) : null);
+          if (!pn) return setMarcas(null);
+          const recuadros = await marcarPn(p, vista.transform, c.getContext("2d")!, pn);
+          setMarcas(recuadros.length);
+          // Lleva el primer recuadro al centro de la caja (se nota con zoom, sobre todo en el celular).
+          const r = recuadros[0];
+          if (r && caja.current) {
+            caja.current.scrollTo({
+              left: (r.x + r.ancho / 2) / dpr - caja.current.clientWidth / 2,
+              top: (r.y + r.alto / 2) / dpr - caja.current.clientHeight / 2,
+            });
+          }
         })
         .catch(() => {});
     });
@@ -75,7 +91,7 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
         <button onClick={() => setZoom((z) => Math.max(1, z - 0.5))} disabled={zoom <= 1} className="boton-secundario px-3" aria-label="Alejar">
           −
         </button>
-        <button onClick={() => setZoom((z) => Math.min(3, z + 0.5))} className="boton-secundario px-3" aria-label="Acercar">
+        <button onClick={() => setZoom((z) => Math.min(4, z + 0.5))} className="boton-secundario px-3" aria-label="Acercar">
           +
         </button>
         {pn && marcas !== null && (
@@ -86,7 +102,7 @@ export function VisorPdf({ url, paginaInicial, pn }: { url: string; paginaInicia
         </a>
       </div>
       {estado === "error" && <p className="tarjeta text-sm text-red-400">No se pudo abrir el PDF del catálogo.</p>}
-      <div ref={caja} className="relative overflow-auto rounded-lg border border-borde bg-white">
+      <div ref={caja} className="relative max-h-[75vh] overflow-auto rounded-lg border border-borde bg-white">
         {estado === "cargando" && (
           <div className="absolute inset-0 flex items-center justify-center bg-fondo/60">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-acento border-t-transparent" />

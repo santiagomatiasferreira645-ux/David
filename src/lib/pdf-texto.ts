@@ -38,12 +38,13 @@ export function pareceListaDePartes(texto: string): boolean {
 }
 
 // Recuadra en el canvas ya dibujado los textos de la página que contienen el PN (sin guiones ni espacios).
-// En PDF escaneados no hay texto, así que no marca nada. Devuelve cuántas marcas hizo.
-export async function marcarPn(pagina: PDFPageProxy, transform: number[], ctx: CanvasRenderingContext2D, pn: string): Promise<number> {
+// En PDF escaneados no hay texto, así que no marca nada. Devuelve los recuadros en pixeles del canvas.
+export type Recuadro = { x: number; y: number; ancho: number; alto: number };
+export async function marcarPn(pagina: PDFPageProxy, transform: number[], ctx: CanvasRenderingContext2D, pn: string): Promise<Recuadro[]> {
   const buscado = pn.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  if (buscado.length < 3) return 0;
+  if (buscado.length < 3) return [];
   const contenido = await pagina.getTextContent();
-  let marcas = 0;
+  const marcas: Recuadro[] = [];
   for (const f of contenido.items as Fragmento[]) {
     if (!f.str || !f.str.replace(/[^A-Za-z0-9]/g, "").toUpperCase().includes(buscado)) continue;
     // Matriz del texto llevada a pixeles del canvas (misma cuenta que pdfjs.Util.transform).
@@ -58,10 +59,11 @@ export async function marcarPn(pagina: PDFPageProxy, transform: number[], ctx: C
     ctx.fillStyle = "rgba(250, 204, 21, 0.35)";
     ctx.strokeStyle = "rgba(220, 38, 38, 0.9)";
     ctx.lineWidth = Math.max(2, alto * 0.12);
-    ctx.fillRect(m[4] - margen, m[5] - alto - margen, ancho + margen * 2, alto + margen * 2);
-    ctx.strokeRect(m[4] - margen, m[5] - alto - margen, ancho + margen * 2, alto + margen * 2);
+    const r = { x: m[4] - margen, y: m[5] - alto - margen, ancho: ancho + margen * 2, alto: alto + margen * 2 };
+    ctx.fillRect(r.x, r.y, r.ancho, r.alto);
+    ctx.strokeRect(r.x, r.y, r.ancho, r.alto);
     ctx.restore();
-    marcas++;
+    marcas.push(r);
   }
   return marcas;
 }
