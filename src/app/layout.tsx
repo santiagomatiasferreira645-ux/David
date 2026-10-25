@@ -27,8 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" className={`${sans.variable} ${mono.variable}`}>
       <body>
         <header className="sticky top-0 z-10 border-b border-borde bg-fondo/85 backdrop-blur">
-          <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="mr-auto flex items-center gap-2">
+          <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+            <Link href="/" className="order-1 mr-auto flex items-center gap-2">
               <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden>
                 <g className="fill-acento">
                   <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(0 32 32)" />

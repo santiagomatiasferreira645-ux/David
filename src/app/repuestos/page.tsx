@@ -43,9 +43,14 @@ export default async function Repuestos({ searchParams }: { searchParams: { q?: 
         <h1 className="titulo">
           Repuestos <span className="font-mono text-base text-acento">{repuestos.length}</span>
         </h1>
-        <form className="w-full sm:w-auto">
-          <input name="q" defaultValue={searchParams.q} placeholder="PN, marca o descripción" className="campo w-full sm:w-64" />
-        </form>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <form className="min-w-0 flex-1 sm:flex-none">
+            <input name="q" defaultValue={searchParams.q} placeholder="PN, marca o descripción" className="campo w-full sm:w-64" />
+          </form>
+          <Link href="/repuestos/nuevo" className="boton shrink-0">
+            + Nuevo PN
+          </Link>
+        </div>
       </div>
       <p className="text-sm secundario">PN con precio cargado o consultados a algún proveedor. Tocá un PN para buscar sus proveedores.</p>
       <ul className="space-y-2 sm:hidden">
