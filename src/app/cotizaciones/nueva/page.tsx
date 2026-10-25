@@ -46,7 +46,7 @@ export default async function NuevaCotizacion({ searchParams }: { searchParams: 
   return (
     <form action={guardar} className="tarjeta space-y-5 p-5 sm:p-6">
       <div>
-        <p className="subtitulo text-acento">Nueva cotización</p>
+        <p className="subtitulo text-amarillo">Nueva cotización</p>
         <h1 className="titulo mt-1">Cargar precio recibido</h1>
       </div>
       <input type="hidden" name="busqueda" defaultValue={searchParams.busqueda} />

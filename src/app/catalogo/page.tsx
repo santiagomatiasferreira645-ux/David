@@ -35,7 +35,7 @@ export default async function Catalogo({ searchParams }: { searchParams: Params 
       <form className="tarjeta space-y-4 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <nav className="subtitulo flex flex-wrap items-center gap-x-2 text-acento">
+            <nav className="subtitulo flex flex-wrap items-center gap-x-2 text-amarillo">
               <Link href="/catalogo" className="hover:text-white">
                 Catálogos de fábrica
               </Link>

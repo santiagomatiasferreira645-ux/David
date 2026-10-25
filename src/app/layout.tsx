@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
             <Link href="/" className="order-1 mr-auto flex items-center gap-2">
               <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden>
-                <g className="fill-acento">
+                <g className="fill-amarillo">
                   <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(0 32 32)" />
                   <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(45 32 32)" />
                   <rect x="29" y="5" width="6" height="8" rx="1" transform="rotate(90 32 32)" />
@@ -72,5 +72,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 // Línea fina con los colores del grupo: cian y los amarillo y verde de SPES Supplier.
 function Franja() {
-  return <div className="h-px bg-gradient-to-r from-acento/70 via-verde/70 to-amarillo/70" aria-hidden />;
+  return <div className="h-0.5 bg-gradient-to-r from-acento/70 via-verde/70 via-30% to-amarillo" aria-hidden />;
 }

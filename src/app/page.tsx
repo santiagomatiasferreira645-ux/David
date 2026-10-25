@@ -34,7 +34,7 @@ export default async function Inicio() {
     <div className="space-y-6">
       <form action="/buscar" className="tarjeta space-y-5 p-5 sm:p-6">
         <div>
-          <p className="subtitulo text-acento">Motor de búsqueda</p>
+          <p className="subtitulo text-amarillo">Motor de búsqueda</p>
           <h1 className="titulo mt-1 text-2xl">Buscar repuesto por PN</h1>
         </div>
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
@@ -89,7 +89,7 @@ export default async function Inicio() {
 
       {ultimas.length > 0 && (
         <section>
-          <h2 className="subtitulo mb-2">Últimas búsquedas</h2>
+          <h2 className="subtitulo mb-2 text-amarillo/80">Últimas búsquedas</h2>
           <ul className="flex flex-wrap gap-2">
             {ultimas.map((b) => (
               <li key={b.id}>
