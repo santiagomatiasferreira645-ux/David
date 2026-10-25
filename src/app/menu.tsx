@@ -8,6 +8,7 @@ const MENU = [
   { href: "/historial", texto: "Historial" },
   { href: "/proveedores", texto: "Proveedores" },
   { href: "/cotizaciones/nueva", texto: "Cargar precio" },
+  { href: "/cuenta", texto: "Mi cuenta" },
 ];
 
 export function Menu() {
