@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { MARCAS_FRECUENTES as MARCAS } from "@/lib/marcas";
 import { normalizarPn } from "@/lib/pn";
 import { clienteServidor } from "@/lib/supabase/servidor";
 
-const MARCAS = ["EMD", "CAT", "MAK", "GE", "John Deere", "Cummins", "Detroit", "Volvo Penta", "MTU", "Wärtsilä", "Reintjes", "Twin Disc", "ZF", "Weichai", "Perkins"];
 
 export default async function Inicio() {
   const supabase = clienteServidor();
@@ -67,6 +67,9 @@ export default async function Inicio() {
           </svg>
           Buscar proveedores
         </button>
+        <Link href="/buscar/multiple" className="boton-secundario mt-2 w-full sm:ml-2 sm:mt-0 sm:w-auto">
+          Búsqueda múltiple
+        </Link>
         <Link href="/catalogo" className="enlace block text-sm sm:ml-4 sm:inline">
           Consultar catálogos de fábrica →
         </Link>

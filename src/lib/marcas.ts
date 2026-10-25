@@ -1,3 +1,6 @@
+// Las que más se buscan, para sugerir en el campo Marca.
+export const MARCAS_FRECUENTES = ["EMD", "CAT", "MAK", "GE", "John Deere", "Cummins", "Detroit", "Volvo Penta", "MTU", "Wärtsilä", "Reintjes", "Twin Disc", "ZF", "Weichai", "Perkins"];
+
 // Nombres con los que aparece cada marca en la base. El primero es el nombre principal.
 const GRUPOS: string[][] = [
   ["CAT", "Caterpillar", "Cat"],
