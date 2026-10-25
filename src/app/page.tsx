@@ -67,6 +67,9 @@ export default async function Inicio() {
           </svg>
           Buscar proveedores
         </button>
+        <Link href="/catalogo" className="enlace block text-sm sm:ml-4 sm:inline">
+          Consultar catálogo de fábrica EMD 645 →
+        </Link>
       </form>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">

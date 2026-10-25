@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { horaLocal, idiomaDe, linkLlamada, linkMail, linkWhatsapp } from "@/lib/contacto";
 import { buscar, obtenerBusqueda } from "@/lib/datos";
+import { catalogoDelPn } from "@/lib/catalogo";
 import { imagenesDelPn } from "@/lib/imagenes";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
+import { TablaCatalogo } from "../catalogo/tabla";
 import { CambiarEstado } from "./cambiar-estado";
 import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
@@ -34,7 +36,7 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   const busqueda = await obtenerBusqueda(Number(searchParams.id));
   if (!busqueda) redirect("/");
   const marca = busqueda.marca ?? "";
-  const [resultados, imagenes] = await Promise.all([buscar(busqueda.pn, marca), imagenesDelPn(busqueda.pn)]);
+  const [resultados, imagenes, catalogo] = await Promise.all([buscar(busqueda.pn, marca), imagenesDelPn(busqueda.pn), catalogoDelPn(busqueda.pn)]);
   const conPrecio = resultados.filter((r) => r.ultimaCotizacion).length;
   // Si nadie cotizó ni fue consultado por este PN, la IA busca alternativas en la web sola.
   const pnRegistrado = resultados.some((r) => r.motivo !== "maneja_la_marca");
@@ -77,6 +79,20 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
           </Link>
         </div>
       </div>
+
+      {catalogo.length > 0 && (
+        <section className="tarjeta">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="subtitulo text-acento">En el catálogo de fábrica · {catalogo[0].catalogo}</p>
+            {catalogo.length > 3 && (
+              <Link href={`/catalogo?q=${encodeURIComponent(busqueda.pn)}`} className="enlace text-sm">
+                Ver las {catalogo.length} apariciones
+              </Link>
+            )}
+          </div>
+          <TablaCatalogo filas={catalogo.slice(0, 3)} />
+        </section>
+      )}
 
       {resultados.length === 0 && (
         <p className="tarjeta secundario">No hay proveedores con este PN ni con esta marca en la base.</p>
