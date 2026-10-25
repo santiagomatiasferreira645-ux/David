@@ -48,6 +48,11 @@ export async function buscarEnCatalogo(texto: string): Promise<FilaCatalogo[]> {
   return (data ?? []) as FilaCatalogo[];
 }
 
+export async function listarCatalogos(): Promise<{ nombre: string; estado: string }[]> {
+  const { data } = await clienteServidor().from("catalogos").select("nombre, estado").order("creado_en");
+  return data ?? [];
+}
+
 // Link firmado por una hora al PDF del catálogo (el bucket es privado).
 export async function urlCatalogo(archivo: string): Promise<string | null> {
   const { data } = await clienteServidor().storage.from(BUCKET_CATALOGOS).createSignedUrl(archivo, 3600);

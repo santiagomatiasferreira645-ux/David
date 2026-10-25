@@ -83,7 +83,7 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
       {catalogo.length > 0 && (
         <section className="tarjeta">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="subtitulo text-acento">En el catálogo de fábrica · {catalogo[0].catalogo}</p>
+            <p className="subtitulo text-acento">En los catálogos de fábrica</p>
             {catalogo.length > 3 && (
               <Link href={`/catalogo?q=${encodeURIComponent(busqueda.pn)}`} className="enlace text-sm">
                 Ver las {catalogo.length} apariciones

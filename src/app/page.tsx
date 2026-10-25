@@ -68,7 +68,7 @@ export default async function Inicio() {
           Buscar proveedores
         </button>
         <Link href="/catalogo" className="enlace block text-sm sm:ml-4 sm:inline">
-          Consultar catálogo de fábrica EMD 645 →
+          Consultar catálogos de fábrica →
         </Link>
       </form>
 

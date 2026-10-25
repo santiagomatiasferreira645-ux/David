@@ -11,7 +11,7 @@ export function TablaCatalogo({ filas }: { filas: FilaCatalogo[] }) {
           <div className="min-w-0 flex-1 basis-56">
             <p className="text-sm text-slate-200">{f.descripcion || <span className="secundario">Sin descripción en el catálogo</span>}</p>
             <p className="mt-0.5 font-mono text-xs secundario">
-              {[f.lista && `P.L. ${f.lista}`, f.titulo].filter(Boolean).join(" · ")}
+              {[f.catalogo, f.lista && `P.L. ${f.lista}`, f.titulo].filter(Boolean).join(" · ")}
             </p>
             {f.nota && <p className="mt-0.5 text-xs text-amber-300/90">{f.nota}</p>}
           </div>
