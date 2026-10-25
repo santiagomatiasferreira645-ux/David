@@ -20,9 +20,6 @@ export default async function Proveedores({ searchParams }: { searchParams: { q?
           <Link href="/proveedores/nuevo" className="boton">
             + Nuevo proveedor
           </Link>
-          <Link href="/repuestos" className="boton-secundario">
-            Repuestos
-          </Link>
         </div>
         <form className="flex w-full gap-2 sm:w-auto">
           <input name="q" defaultValue={q} placeholder="Empresa, marca o producto" className="campo min-w-0 flex-1 sm:w-56 sm:flex-none" />
