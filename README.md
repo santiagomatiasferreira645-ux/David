@@ -33,7 +33,7 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 7. **Catálogo EMD 645**: ejecutar `supabase/migrations/0004_catalogo.sql` y después los archivos con los PN del catálogo (se generan aparte con el PDF, no están en el repositorio). Subir el PDF en Storage > `catalogos` con el nombre `emd-645-catalogo-302.pdf`.
 8. **Cargar más catálogos desde la app**: ejecutar `supabase/migrations/0005_catalogos.sql`. Después, en Catálogos > Cargar catálogo se elige el PDF; la app lo guarda, lee cada página con IA (usa la misma `ANTHROPIC_API_KEY`) y agrega sus PN.
 
-9. **Presupuestos históricos**: ejecutar `supabase/migrations/0007_presupuestos.sql` (crea las tablas y el espacio privado `presupuestos` en Storage). Usa la misma `ANTHROPIC_API_KEY`. Para que los servicios se copien al módulo de Servicios, ejecutar también su migración (`0008_servicios.sql`).
+9. **Presupuestos históricos**: ejecutar `supabase/migrations/0007_presupuestos.sql` (crea las tablas y el espacio privado `presupuestos` en Storage). Usa la misma `ANTHROPIC_API_KEY`. Para que los servicios se copien al módulo de Servicios, ejecutar también su migración (`0008_servicios.sql`). Si se leyeron presupuestos antes de crear Servicios, después de `0008` ejecutar `0010_servicios_desde_presupuestos.sql` para pasar esos servicios.
 
 ## Desarrollo
 
