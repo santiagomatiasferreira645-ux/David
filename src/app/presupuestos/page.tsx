@@ -166,7 +166,7 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
               </ul>
             </section>
           )}
-          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer, con error o que no son presupuestos" lista={pendientes} />}
+          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer, con error o que no son presupuestos" lista={pendientes} leer />}
           {todos.length > 0 && (
             <Link href="/presupuestos?todos=1" className="enlace inline-block text-sm">
               Ver todos en una lista, para borrar varios juntos →
