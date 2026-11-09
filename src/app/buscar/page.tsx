@@ -12,6 +12,7 @@ import { HojasDelPn, type Hoja } from "../catalogo/hojas-del-pn";
 import { CambiarEstado } from "./cambiar-estado";
 import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
+import { InicioRepuestos } from "./inicio";
 
 // Una hoja por cada página distinta donde aparece el PN (hasta 6), con el link firmado a su PDF.
 async function hojasDelPn(filas: FilaCatalogo[]): Promise<Hoja[]> {
@@ -27,7 +28,7 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   // Una búsqueda nueva se guarda en el historial y se redirige a su id, así recargar no la duplica.
   if (!searchParams.id) {
     const pn = (searchParams.pn ?? "").trim();
-    if (!pn) redirect("/");
+    if (!pn) return <InicioRepuestos />;
     const { data, error } = await clienteServidor()
       .from("busquedas")
       .insert({
@@ -43,7 +44,7 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   }
 
   const busqueda = await obtenerBusqueda(Number(searchParams.id));
-  if (!busqueda) redirect("/");
+  if (!busqueda) redirect("/buscar");
   const marca = busqueda.marca ?? "";
   const [resultados, imagenes, catalogo] = await Promise.all([buscar(busqueda.pn, marca), imagenesDelPn(busqueda.pn), catalogoDelPn(busqueda.pn)]);
   const hojas = await hojasDelPn(catalogo);

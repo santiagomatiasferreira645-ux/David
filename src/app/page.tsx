@@ -1,106 +1,108 @@
 import Link from "next/link";
-import { MARCAS_FRECUENTES as MARCAS } from "@/lib/marcas";
-import { normalizarPn } from "@/lib/pn";
+import { cookies } from "next/headers";
+import { COOKIE_MODULO, MODULOS, moduloPorId, type Modulo } from "@/lib/modulos";
 import { clienteServidor } from "@/lib/supabase/servidor";
+import { IconoModulo } from "./icono-modulo";
+import { Orientador } from "./orientador";
 
-
+// Inicio: los módulos de la app como entrada principal. Arriba, "¿Qué necesitás hacer?" lleva directo al
+// lugar indicado (o busca el PN si se escribe uno) y "Seguir en …" retoma el último módulo usado.
 export default async function Inicio() {
   const supabase = clienteServidor();
-  const [{ data: recientes }, prov, cot, abiertas] = await Promise.all([
-    supabase.from("busquedas").select("id, pn, marca, estado, creado_en").order("creado_en", { ascending: false }).limit(30),
-    supabase.from("proveedores").select("id", { count: "exact", head: true }),
-    supabase.from("cotizaciones").select("id", { count: "exact", head: true }),
-    supabase.from("busquedas").select("id", { count: "exact", head: true }).eq("estado", "abierta"),
-  ]);
+  const ultimo = moduloPorId(cookies().get(COOKIE_MODULO)?.value);
 
-  // El mismo PN escrito distinto (8N-7005 / 8n7005) cuenta una sola vez.
-  const vistos = new Set<string>();
-  const ultimas = (recientes ?? [])
-    .filter((b) => {
-      const clave = `${normalizarPn(b.pn)}|${(b.marca ?? "").toLowerCase()}`;
-      if (vistos.has(clave)) return false;
-      vistos.add(clave);
-      return true;
-    })
-    .slice(0, 6);
+  // Si la tabla de un módulo todavía no existe, la consulta falla y la tarjeta se muestra sin cifra.
+  const conteos = new Map(
+    await Promise.all(
+      MODULOS.filter((m) => m.disponible && m.conteo).map(async (m) => {
+        const { count, error } = await supabase.from(m.conteo!.tabla).select("*", { count: "exact", head: true });
+        return [m.id, error ? null : count] as const;
+      }),
+    ),
+  );
 
-  const cifras = [
-    { texto: "Proveedores", corto: "Proveedores", valor: prov.count, linea: "border-t-acento/70" },
-    { texto: "Precios registrados", corto: "Precios", valor: cot.count, linea: "border-t-verde/70" },
-    { texto: "Búsquedas abiertas", corto: "Abiertas", valor: abiertas.count, linea: "border-t-amarillo/70" },
-  ];
+  const disponibles = MODULOS.filter((m) => m.disponible);
+  const proximos = MODULOS.filter((m) => !m.disponible);
 
   return (
     <div className="space-y-6">
-      <form action="/buscar" className="tarjeta space-y-5 p-5 sm:p-6">
+      <section className="tarjeta space-y-4 p-5 sm:p-6">
         <div>
-          <p className="subtitulo text-amarillo">Motor de búsqueda</p>
-          <h1 className="titulo mt-1 text-2xl">Buscar repuesto por PN</h1>
+          <p className="subtitulo text-amarillo">Inicio</p>
+          <h1 className="titulo mt-1 text-2xl">¿Qué necesitás hacer?</h1>
         </div>
-        <div className="grid gap-4 sm:grid-cols-[2fr_1fr_1fr]">
-          <div>
-            <label className="etiqueta" htmlFor="pn">Part number</label>
-            <input id="pn" name="pn" required autoFocus placeholder="8N-7005" className="campo-pn text-lg" autoCapitalize="characters" />
-          </div>
-          <div>
-            <label className="etiqueta" htmlFor="marca">Marca</label>
-            <input id="marca" name="marca" list="marcas" placeholder="CAT" className="campo" />
-            <datalist id="marcas">
-              {MARCAS.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
-          </div>
-          <div>
-            <label className="etiqueta" htmlFor="cantidad">Cantidad</label>
-            <input id="cantidad" name="cantidad" type="number" min="1" defaultValue="1" className="campo font-mono" />
-          </div>
-        </div>
-        <div>
-          <label className="etiqueta" htmlFor="cliente">Cliente o embarcación (opcional)</label>
-          <input id="cliente" name="cliente" className="campo" />
-        </div>
-        <button className="boton w-full sm:w-auto">
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </svg>
-          Buscar proveedores
-        </button>
-        <Link href="/buscar/multiple" className="boton-secundario mt-2 w-full sm:ml-2 sm:mt-0 sm:w-auto">
-          Búsqueda múltiple
-        </Link>
-        <Link href="/catalogo" className="enlace block text-sm sm:ml-4 sm:inline">
-          Consultar catálogos de fábrica →
-        </Link>
-      </form>
+        <Orientador />
+        {ultimo && (
+          <Link
+            href={ultimo.href}
+            className={`flex items-center gap-3 rounded-md border border-borde bg-panel2 px-3 py-2.5 text-sm transition hover:border-acento/60`}
+          >
+            <span className={`rounded-md p-1.5 ${ultimo.color.fondo} ${ultimo.color.texto}`}>
+              <IconoModulo modulo={ultimo} className="h-4 w-4" />
+            </span>
+            <span className="flex-1">
+              <span className="secundario">Seguir en </span>
+              <span className="font-semibold text-white">{ultimo.nombre}</span>
+            </span>
+            <span className="text-acento" aria-hidden>
+              →
+            </span>
+          </Link>
+        )}
+      </section>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {cifras.map((c) => (
-          <div key={c.texto} className={`tarjeta min-w-0 border-t-2 px-1 py-3 text-center sm:p-4 ${c.linea}`}>
-            <p className="whitespace-nowrap font-mono text-[0.625rem] font-medium uppercase tracking-[0.02em] text-apagado sm:text-[11px] sm:tracking-[0.14em]">
-              <span className="sm:hidden">{c.corto}</span>
-              <span className="hidden sm:inline">{c.texto}</span>
-            </p>
-            <p className="mt-1 font-mono text-2xl font-semibold text-white">{c.valor ?? "–"}</p>
-          </div>
+      <section>
+        <h2 className="subtitulo mb-2 text-amarillo/80">Módulos</h2>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {disponibles.map((m) => (
+            <TarjetaModulo key={m.id} modulo={m} cifra={conteos.get(m.id) ?? null} />
+          ))}
+          {proximos.map((m) => (
+            <TarjetaModulo key={m.id} modulo={m} cifra={null} />
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function TarjetaModulo({ modulo: m, cifra }: { modulo: Modulo; cifra: number | null }) {
+  const cabecera = (
+    <div className="flex items-start gap-3">
+      <span className={`shrink-0 rounded-lg p-2.5 ${m.color.fondo} ${m.color.texto}`}>
+        <IconoModulo modulo={m} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <h3 className="text-lg font-semibold text-white group-hover:text-acento">{m.nombre}</h3>
+          {m.disponible && cifra != null && m.conteo && (
+            <span className="font-mono text-xs secundario">
+              <span className="text-base font-semibold text-white">{cifra}</span> {m.conteo.texto}
+            </span>
+          )}
+          {!m.disponible && <span className="chip border-borde text-apagado">Próximamente</span>}
+        </div>
+        <p className="mt-0.5 text-sm secundario">{m.descripcion}</p>
+      </div>
+    </div>
+  );
+
+  if (!m.disponible) {
+    return <li className={`tarjeta border-t-2 opacity-50 ${m.color.linea}`}>{cabecera}</li>;
+  }
+
+  return (
+    <li className={`tarjeta flex flex-col gap-3 border-t-2 transition hover:border-acento/40 ${m.color.linea}`}>
+      <Link href={m.href} className="group block">
+        {cabecera}
+      </Link>
+      <div className="mt-auto flex flex-wrap gap-2 border-t border-borde/60 pt-3">
+        {m.acciones.slice(0, 3).map((a) => (
+          <Link key={a.href} href={a.href} className="boton-secundario px-2.5 py-1.5 text-[13px]">
+            {a.texto}
+          </Link>
         ))}
       </div>
-
-      {ultimas.length > 0 && (
-        <section>
-          <h2 className="subtitulo mb-2 text-amarillo/80">Últimas búsquedas</h2>
-          <ul className="flex flex-wrap gap-2">
-            {ultimas.map((b) => (
-              <li key={b.id}>
-                <Link href={`/buscar?id=${b.id}`} className="boton-secundario">
-                  <span className="pn">{b.pn}</span> {b.marca && <span className="secundario">· {b.marca}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
+    </li>
   );
 }
