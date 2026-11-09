@@ -11,7 +11,8 @@ export type Entrada =
   | { tipo: "texto"; texto: string };
 
 const texto = { type: "string" } as const;
-const opcional = { type: ["string", "null"] } as const;
+// Los textos que pueden faltar van vacíos y no null: la API admite pocos campos con más de un tipo.
+const opcional = { type: "string", description: "Vacío si no figura." } as const;
 const numero = { type: ["number", "null"] } as const;
 
 const ESQUEMA = {
@@ -20,14 +21,14 @@ const ESQUEMA = {
   required: ["tipo", "empresa", "numero", "fecha", "cliente", "proveedor", "moneda", "total", "condiciones", "items"],
   properties: {
     tipo: { type: "string", enum: ["propio", "proveedor"], description: "propio: lo emitió una de nuestras empresas a un cliente. proveedor: nos lo mandó un proveedor o taller." },
-    empresa: { ...opcional, description: "Empresa nuestra que lo emitió (DAYSA, Técnica Naval y Servicios, SPES Supplier), solo si es propio." },
-    numero: { ...opcional, description: "Número de presupuesto, cotización, proforma u oferta." },
-    fecha: { ...opcional, description: "Fecha de emisión en formato AAAA-MM-DD." },
-    cliente: { ...opcional, description: "Cliente, armador o embarcación a quien va dirigido." },
-    proveedor: { ...opcional, description: "Empresa que cotiza, si es de proveedor." },
-    moneda: { ...opcional, description: "Código ISO: USD, EUR, ARS, PYG, BRL..." },
+    empresa: { ...opcional, description: "Empresa nuestra que lo emitió (DAYSA, Técnica Naval y Servicios, SPES Supplier), solo si es propio. Vacío si no figura." },
+    numero: { ...opcional, description: "Número de presupuesto, cotización, proforma u oferta. Vacío si no figura." },
+    fecha: { ...opcional, description: "Fecha de emisión en formato AAAA-MM-DD. Vacío si no figura." },
+    cliente: { ...opcional, description: "Cliente, armador o embarcación a quien va dirigido. Vacío si no figura." },
+    proveedor: { ...opcional, description: "Empresa que cotiza, si es de proveedor. Vacío si no figura." },
+    moneda: { ...opcional, description: "Código ISO: USD, EUR, ARS, PYG, BRL... Vacío si no figura." },
     total: numero,
-    condiciones: { ...opcional, description: "Forma de pago, plazo de entrega, validez, incoterm, en una línea." },
+    condiciones: { ...opcional, description: "Forma de pago, plazo de entrega, validez, incoterm, en una línea. Vacío si no figura." },
     items: {
       type: "array",
       items: {
@@ -36,17 +37,17 @@ const ESQUEMA = {
         required: ["clase", "pn", "marca", "descripcion", "modelo_motor", "cantidad", "unidad", "precio_unitario", "moneda", "plazo_dias", "categoria", "notas"],
         properties: {
           clase: { type: "string", enum: ["repuesto", "servicio"] },
-          pn: { ...opcional, description: "Número de parte exacto, solo en repuestos. Null si no figura." },
+          pn: { ...opcional, description: "Número de parte exacto, solo en repuestos. Vacío si no figura." },
           marca: opcional,
           descripcion: texto,
-          modelo_motor: { ...opcional, description: "Motor, reductor o equipo al que aplica (ej. EMD 16-645, CAT 3512)." },
+          modelo_motor: { ...opcional, description: "Motor, reductor o equipo al que aplica (ej. EMD 16-645, CAT 3512). Vacío si no figura." },
           cantidad: numero,
-          unidad: { ...opcional, description: "un, hora, día, global, servicio..." },
+          unidad: { ...opcional, description: "un, hora, día, global, servicio... Vacío si no figura." },
           precio_unitario: { ...numero, description: "Precio por unidad. Si solo figura el total del renglón, dividilo por la cantidad." },
           moneda: opcional,
           plazo_dias: { type: ["integer", "null"] },
           categoria: { type: "string", enum: [...CATEGORIAS_SERVICIO, "No aplica"], description: "Solo en servicios; en repuestos 'No aplica'." },
-          notas: { ...opcional, description: "Reemplazos, condición (nuevo, usado, reacondicionado), descuentos u otra aclaración del renglón." },
+          notas: { ...opcional, description: "Reemplazos, condición (nuevo, usado, reacondicionado), descuentos u otra aclaración del renglón. Vacío si no figura." },
         },
       },
     },
@@ -59,10 +60,10 @@ Tu tarea: devolver los datos del encabezado y cada renglón cotizado, para usarl
 
 Reglas:
 - Cada renglón es "repuesto" (una pieza o material, con o sin PN) o "servicio" (mano de obra, overhaul, reparación, rectificado, inspección, montaje, flete, viáticos, alquiler de equipo).
-- Copiá el PN exacto como figura; nunca lo inventes. Si no hay PN, null.
+- Copiá el PN exacto como figura; nunca lo inventes. Si no hay PN, vacío.
 - Los precios van como número, sin separadores de miles (1.250,50 es 1250.5). Si hay descuento por renglón, usá el precio final.
 - No incluyas subtotales, impuestos ni totales como renglones.
-- Si un dato no figura, null. Nunca inventes.`;
+- Si un texto no figura, dejalo vacío; si un número no figura, null. Nunca inventes.`;
 
 export async function leerPresupuesto(entrada: Entrada, nombreArchivo: string): Promise<PresupuestoLeido> {
   const client = new Anthropic();
