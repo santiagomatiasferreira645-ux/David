@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { preferirPdf, agruparEnCarpetas, archivoAceptado, buscarPorNombre, esArchivoOculto, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
+import { preferirPdf, agruparEnCarpetas, agruparPorAnio, nombrePresupuesto, archivoAceptado, buscarPorNombre, esArchivoOculto, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
 
 const base: PresupuestoLeido = {
   tipo: "proveedor",
@@ -106,5 +106,17 @@ describe("presupuestos", () => {
   it("entre el mismo presupuesto en PDF y Word se queda con el PDF", () => {
     const r = preferirPdf(["C/A/Oferta 12.docx", "C/A/Oferta 12.pdf", "C/A/Oferta 13.doc", "C/A/Oferta 13.DOCX", "C/B/Oferta 12.docx"]);
     expect([...r].sort()).toEqual(["C/A/Oferta 12.pdf", "C/A/Oferta 13.DOCX", "C/B/Oferta 12.docx"]);
+  });
+  it("agrupa por año, el más nuevo primero y sin fecha al final", () => {
+    expect(agruparPorAnio([{ fecha: "2023-05-01" }, { fecha: null }, { fecha: "2025-01-02" }, { fecha: "2023-11-30" }])).toEqual([
+      { anio: "2025", cantidad: 1 },
+      { anio: "2023", cantidad: 2 },
+      { anio: "sin-fecha", cantidad: 1 },
+    ]);
+  });
+
+  it("nombra el presupuesto por su archivo", () => {
+    expect(nombrePresupuesto({ id: 1, numero: "12", nombre_archivo: "COMERCIAL/Naviera/Oferta 12.pdf" })).toBe("Oferta 12");
+    expect(nombrePresupuesto({ id: 2, numero: "12", nombre_archivo: null })).toBe("Presupuesto N° 12");
   });
 });

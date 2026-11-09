@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { Presupuesto } from "@/lib/presupuestos";
+import { nombrePresupuesto, type Presupuesto } from "@/lib/presupuestos";
 import { borrarPresupuestos } from "./acciones";
 import { TipoChip } from "./precios";
 
@@ -72,9 +72,9 @@ export function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: Fi
             />
             <Link href={`/presupuestos/${p.id}`} className="flex min-w-0 flex-1 flex-wrap items-center gap-2 hover:text-acento">
               <span className="mr-auto min-w-0">
-                <span className="block break-words text-white">{p.numero ? `N° ${p.numero}` : (p.nombre_archivo?.split("/").pop() ?? `#${p.id}`)}</span>
+                <span className="block break-words text-white">{nombrePresupuesto(p)}</span>
                 <span className="font-mono text-xs secundario">
-                  {[p.fecha, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
+                  {[p.fecha, p.numero && p.nombre_archivo ? `N° ${p.numero}` : null, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
                 </span>
                 {p.estado !== "listo" && p.error && <span className="block text-xs text-red-300/80">{p.error.slice(0, 160)}</span>}
               </span>
