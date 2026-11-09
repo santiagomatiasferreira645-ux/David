@@ -10,7 +10,13 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--fuente-mono" });
 export const metadata: Metadata = {
   title: "BUSCADOR DE REPUESTOS",
   appleWebApp: { title: "BUSCADOR DE REPUESTOS" },
-  icons: { icon: "/icono.svg", apple: "/icono.svg" },
+  icons: {
+    icon: [
+      { url: "/icono.svg", type: "image/svg+xml" },
+      { url: "/icono-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+  },
   description: "Búsqueda de repuestos navales por PN y marca, con historial de proveedores y cotizaciones.",
 };
 
