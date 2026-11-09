@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { archivoAceptado, buscarPorNombre, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
+import { archivoAceptado, buscarPorNombre, carpetaDe, esArchivoOculto, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
 
 const base: PresupuestoLeido = {
   tipo: "proveedor",
@@ -77,5 +77,16 @@ describe("presupuestos", () => {
     expect(archivoAceptado("foto.jpeg")).toBe(true);
     expect(archivoAceptado("oferta.docx")).toBe(false);
     expect(rutaArchivo("Presupuesto Nº 123 (final).pdf", 1)).toBe("1-presupuesto-n-123-final.pdf");
+  });
+
+  it("toma el cliente de la carpeta y saltea archivos de sistema", () => {
+    expect(carpetaDe("Presupuestos/Naviera Sur/2023/oferta.pdf")).toBe("Naviera Sur");
+    expect(carpetaDe("Naviera Sur/oferta.pdf")).toBe("Naviera Sur");
+    expect(carpetaDe("oferta.pdf")).toBeNull();
+    expect(esArchivoOculto("Clientes/.DS_Store")).toBe(true);
+    expect(esArchivoOculto("Clientes/~$oferta.xlsx")).toBe(true);
+    expect(esArchivoOculto("Clientes/Thumbs.db")).toBe(true);
+    expect(esArchivoOculto("Clientes/oferta.pdf")).toBe(false);
+    expect(rutaArchivo("Clientes/Naviera Sur/Oferta 12.pdf", 5)).toBe("5-oferta-12.pdf");
   });
 });

@@ -64,7 +64,7 @@ Reglas:
 - No incluyas subtotales, impuestos ni totales como renglones.
 - Si un dato no figura, null. Nunca inventes.`;
 
-export async function leerPresupuesto(entrada: Entrada, nombreArchivo: string): Promise<PresupuestoLeido> {
+export async function leerPresupuesto(entrada: Entrada, nombreArchivo: string, carpeta: string | null): Promise<PresupuestoLeido> {
   const client = new Anthropic();
   const contenido: Anthropic.Beta.BetaContentBlockParam[] = [];
   if (entrada.tipo === "pdf") {
@@ -74,7 +74,8 @@ export async function leerPresupuesto(entrada: Entrada, nombreArchivo: string): 
   } else {
     contenido.push({ type: "text", text: `Contenido de la planilla:\n${entrada.texto}` });
   }
-  contenido.push({ type: "text", text: `Archivo: ${nombreArchivo}. Extraé el presupuesto.` });
+  const pista = carpeta ? ` Estaba guardado en la carpeta "${carpeta}", que suele ser el nombre del cliente.` : "";
+  contenido.push({ type: "text", text: `Archivo: ${nombreArchivo}.${pista} Extraé el presupuesto.` });
 
   const respuesta = await client.beta.messages
     .stream({

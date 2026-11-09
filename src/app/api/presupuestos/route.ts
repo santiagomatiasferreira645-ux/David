@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { leerPresupuesto, type Entrada } from "@/lib/presupuesto-ia";
-import { buscarPorNombre, extension, filaServicio, limpiarLeido, MAX_BYTES } from "@/lib/presupuestos";
+import { buscarPorNombre, carpetaDe, extension, filaServicio, limpiarLeido, MAX_BYTES } from "@/lib/presupuestos";
 import { clienteServidor } from "@/lib/supabase/servidor";
 
 // Un presupuesto por pedido; 60 segundos es el máximo del plan gratuito de Vercel.
@@ -65,7 +65,10 @@ export async function POST(request: Request) {
     if (archivo.size > MAX_BYTES) return fallar("El archivo pesa más de 15 MB.", 400);
 
     const nombre = p.nombre_archivo ?? p.archivo;
-    const leido = limpiarLeido(await leerPresupuesto(await armarEntrada(nombre, await archivo.arrayBuffer()), nombre));
+    const carpeta = carpetaDe(p.nombre_archivo);
+    const leido = limpiarLeido(await leerPresupuesto(await armarEntrada(nombre, await archivo.arrayBuffer()), nombre, carpeta));
+    // Los presupuestos están ordenados en carpetas por cliente: si el documento no lo dice, vale la carpeta.
+    if (leido.tipo === "propio" && !leido.cliente && carpeta) leido.cliente = carpeta;
 
     // Proveedor y cliente por nombre; la tabla clientes puede no existir todavía, en ese caso queda solo el texto.
     const [{ data: proveedores }, clientes] = await Promise.all([

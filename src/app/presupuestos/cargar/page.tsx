@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { archivoAceptado, EXTENSIONES, MAX_BYTES, rutaArchivo } from "@/lib/presupuestos";
+import { archivoAceptado, carpetaDe, esArchivoOculto, EXTENSIONES, MAX_BYTES, rutaArchivo } from "@/lib/presupuestos";
 import { clienteNavegador } from "@/lib/supabase/navegador";
 
 type Fila = {
   clave: string;
   archivo: File;
+  ruta: string; // con la carpeta si se eligió una carpeta entera: "Naviera Sur/2023/oferta.pdf"
+  carpeta: string | null;
   estado: "pendiente" | "subiendo" | "leyendo" | "listo" | "error";
   mensaje?: string;
   id?: number;
@@ -26,6 +28,7 @@ async function leerConIA(id: number) {
 export default function CargarPresupuestos() {
   const [filas, setFilas] = useState<Fila[]>([]);
   const [ocupado, setOcupado] = useState(false);
+  const [ignorados, setIgnorados] = useState(0);
 
   const actualizar = (clave: string, cambio: Partial<Fila>) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, ...cambio } : f)));
 
@@ -36,14 +39,25 @@ export default function CargarPresupuestos() {
     return () => window.removeEventListener("beforeunload", avisar);
   }, [ocupado]);
 
-  function elegir(lista: FileList | null) {
+  // Desde una carpeta entera se saltean en silencio los archivos que la IA no lee (Word, accesos directos...) y se cuentan.
+  function elegir(lista: FileList | null, deCarpeta: boolean) {
     if (!lista) return;
-    const nuevas: Fila[] = Array.from(lista).map((archivo, i) => {
-      const clave = `${Date.now()}-${i}-${archivo.name}`;
-      if (!archivoAceptado(archivo.name)) return { clave, archivo, estado: "error", mensaje: "Formato no admitido. Usá PDF, foto, Excel (.xlsx) o CSV. Un Word se puede guardar como PDF." };
-      if (archivo.size > MAX_BYTES) return { clave, archivo, estado: "error", mensaje: "Pesa más de 15 MB." };
-      return { clave, archivo, estado: "pendiente" };
+    let saltados = 0;
+    const nuevas: Fila[] = [];
+    Array.from(lista).forEach((archivo, i) => {
+      const ruta = archivo.webkitRelativePath || archivo.name;
+      if (esArchivoOculto(ruta)) return;
+      if (deCarpeta && !archivoAceptado(archivo.name)) {
+        saltados++;
+        return;
+      }
+      const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta, carpeta: carpetaDe(ruta) };
+      if (filas.some((f) => f.ruta === ruta && f.archivo.size === archivo.size)) return;
+      if (!archivoAceptado(archivo.name)) nuevas.push({ ...base, estado: "error", mensaje: "Formato no admitido. Usá PDF, foto, Excel (.xlsx) o CSV. Un Word se puede guardar como PDF." });
+      else if (archivo.size > MAX_BYTES) nuevas.push({ ...base, estado: "error", mensaje: "Pesa más de 15 MB." });
+      else nuevas.push({ ...base, estado: "pendiente" });
     });
+    setIgnorados((n) => n + saltados);
     setFilas((fs) => [...fs, ...nuevas]);
   }
 
@@ -51,12 +65,21 @@ export default function CargarPresupuestos() {
     const supabase = clienteNavegador();
     try {
       let id = f.id;
+      // Si el mismo archivo ya se había subido (por ejemplo, al volver a elegir la carpeta), no se duplica.
+      if (!id) {
+        const { data: previo } = await supabase.from("presupuestos").select("id, estado").eq("nombre_archivo", f.ruta).order("id", { ascending: false }).limit(1).maybeSingle();
+        if (previo?.estado === "listo") {
+          actualizar(f.clave, { id: previo.id, estado: "listo", mensaje: "Ya estaba cargado." });
+          return;
+        }
+        if (previo) id = previo.id as number;
+      }
       if (!id) {
         actualizar(f.clave, { estado: "subiendo", mensaje: undefined });
-        const ruta = rutaArchivo(f.archivo.name);
+        const ruta = rutaArchivo(f.ruta);
         const { error: errorSubida } = await supabase.storage.from("presupuestos").upload(ruta, f.archivo, { contentType: f.archivo.type || undefined });
         if (errorSubida) throw new Error(`No se pudo guardar el archivo: ${errorSubida.message}`);
-        const { data, error } = await supabase.from("presupuestos").insert({ archivo: ruta, nombre_archivo: f.archivo.name }).select("id").single();
+        const { data, error } = await supabase.from("presupuestos").insert({ archivo: ruta, nombre_archivo: f.ruta }).select("id").single();
         if (error) throw new Error(`No se pudo crear el presupuesto: ${error.message}`);
         id = data.id as number;
         actualizar(f.clave, { id });
@@ -90,7 +113,7 @@ export default function CargarPresupuestos() {
           <p className="subtitulo text-amarillo">Presupuestos históricos</p>
           <h1 className="titulo mt-1">Cargar presupuestos</h1>
           <p className="mt-1 text-sm secundario">
-            Elegí uno o varios presupuestos: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Cada uno tarda entre 10 y 40 segundos.
+            Elegí uno o varios presupuestos, o una carpeta entera: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Si están ordenados en carpetas por cliente, elegí la carpeta de arriba de todo: el nombre de cada subcarpeta se toma como cliente. Lo que ya estaba cargado no se repite. Cada archivo tarda entre 10 y 40 segundos.
           </p>
         </div>
         <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-acento/50 p-6 text-center ${ocupado ? "pointer-events-none opacity-50" : "hover:bg-acento/5"}`}>
@@ -106,17 +129,41 @@ export default function CargarPresupuestos() {
             className="hidden"
             disabled={ocupado}
             onChange={(e) => {
-              elegir(e.target.files);
+              elegir(e.target.files, false);
               e.target.value = "";
             }}
           />
         </label>
+        <label className={`boton-secundario w-full cursor-pointer sm:w-auto ${ocupado ? "pointer-events-none opacity-50" : ""}`}>
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+          </svg>
+          Elegir una carpeta entera
+          <input
+            type="file"
+            multiple
+            className="hidden"
+            disabled={ocupado}
+            {...{ webkitdirectory: "", directory: "" }}
+            onChange={(e) => {
+              elegir(e.target.files, true);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {ignorados > 0 && <p className="text-xs secundario">Se saltearon {ignorados} archivos que no son PDF, foto, Excel ni CSV (por ejemplo, Word).</p>}
         <div className="flex flex-wrap gap-2">
           <button className="boton" onClick={empezar} disabled={ocupado || pendientes === 0}>
-            {ocupado ? "Leyendo..." : pendientes ? `Leer ${pendientes} con IA` : "Leer con IA"}
+            {ocupado ? `Leyendo... ${filas.filter((f) => f.estado === "listo" || f.estado === "error").length} de ${filas.length}` : pendientes ? `Leer ${pendientes} con IA` : "Leer con IA"}
           </button>
           {!ocupado && filas.length > 0 && (
-            <button className="boton-secundario" onClick={() => setFilas([])}>
+            <button
+              className="boton-secundario"
+              onClick={() => {
+                setFilas([]);
+                setIgnorados(0);
+              }}
+            >
               Limpiar lista
             </button>
           )}
@@ -125,7 +172,10 @@ export default function CargarPresupuestos() {
           <ul className="divide-y divide-borde/60 border-t border-borde/60">
             {filas.map((f) => (
               <li key={f.clave} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
-                <span className="mr-auto min-w-0 break-all text-white">{f.archivo.name}</span>
+                <span className="mr-auto min-w-0 break-all text-white">
+                  {f.carpeta && <span className="chip mr-2 border-amarillo/40 text-amarillo">{f.carpeta}</span>}
+                  {f.archivo.name}
+                </span>
                 <EstadoFila fila={f} />
                 {f.mensaje && <p className={`w-full text-xs ${f.estado === "error" ? "text-red-400" : "secundario"}`}>{f.mensaje}</p>}
               </li>
