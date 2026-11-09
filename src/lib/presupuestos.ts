@@ -268,3 +268,19 @@ export function agruparEnCarpetas(lista: { tipo: string | null; cliente: string 
 
 // Caracteres con significado en los filtros de PostgREST (or=, ilike).
 export const limpiarFiltro = (s: string) => s.replace(/[%,()*\\]/g, " ").trim();
+
+// Primer nivel de la cascada Año / Cliente / Presupuesto. Los que no tienen fecha van al final, en "Sin fecha".
+export const SIN_FECHA = "sin-fecha";
+export const anioDe = (fecha: string | null) => (fecha && /^\d{4}/.test(fecha) ? fecha.slice(0, 4) : SIN_FECHA);
+
+export function agruparPorAnio(lista: { fecha: string | null }[]): { anio: string; cantidad: number }[] {
+  const cuenta = new Map<string, number>();
+  for (const p of lista) cuenta.set(anioDe(p.fecha), (cuenta.get(anioDe(p.fecha)) ?? 0) + 1);
+  return [...cuenta]
+    .map(([anio, cantidad]) => ({ anio, cantidad }))
+    .sort((a, b) => (a.anio === SIN_FECHA ? 1 : b.anio === SIN_FECHA ? -1 : b.anio.localeCompare(a.anio)));
+}
+
+// Nombre con que se muestra un presupuesto: el del archivo, sin la carpeta ni la extensión.
+export const nombrePresupuesto = (p: { id: number; numero: string | null; nombre_archivo: string | null }) =>
+  p.nombre_archivo?.split("/").pop()?.replace(/\.[^.]+$/, "").trim() || (p.numero ? `Presupuesto N° ${p.numero}` : `#${p.id}`);

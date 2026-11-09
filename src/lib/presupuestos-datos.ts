@@ -1,6 +1,6 @@
 import "server-only";
 import { normalizarPn } from "./pn";
-import { limpiarFiltro, type ItemPresupuesto, type Presupuesto } from "./presupuestos";
+import { limpiarFiltro, SIN_FECHA, type ItemPresupuesto, type Presupuesto } from "./presupuestos";
 import { clienteServidor } from "./supabase/servidor";
 
 export type ItemConPresupuesto = ItemPresupuesto & {
@@ -13,15 +13,23 @@ const porFecha = (a: ItemConPresupuesto, b: ItemConPresupuesto) => (b.presupuest
 
 // Renglones de presupuestos que coinciden con el texto: cada palabra tiene que estar en el PN, la descripción, la marca,
 // el motor, el cliente o el proveedor. Más recientes primero.
-export async function buscarItems(args: { q: string; clase?: string; tipo?: string; ids?: number[] }): Promise<ItemConPresupuesto[]> {
+// anio: solo presupuestos de ese año ("2024", o "sin-fecha"); ids: solo esos presupuestos (una carpeta abierta).
+export async function buscarItems(args: { q: string; clase?: string; tipo?: string; anio?: string; ids?: number[] }): Promise<ItemConPresupuesto[]> {
   const supabase = clienteServidor();
   const palabras = limpiarFiltro(args.q).split(/\s+/).filter(Boolean).slice(0, 5);
   if (!palabras.length) return [];
 
-  let consulta = supabase.from("presupuesto_items").select(CAMPOS).limit(300);
-  if (args.ids) consulta = consulta.in("presupuesto_id", args.ids.length ? args.ids : [-1]);
-  if (args.clase === "repuesto" || args.clase === "servicio") consulta = consulta.eq("clase", args.clase);
-  if (args.tipo === "propio" || args.tipo === "proveedor") consulta = consulta.eq("presupuestos.tipo", args.tipo);
+  const base = () => {
+    let c = supabase.from("presupuesto_items").select(CAMPOS).limit(300);
+    if (args.ids) c = c.in("presupuesto_id", args.ids.length ? args.ids : [-1]);
+    if (args.clase === "repuesto" || args.clase === "servicio") c = c.eq("clase", args.clase);
+    if (args.tipo === "propio" || args.tipo === "proveedor") c = c.eq("presupuestos.tipo", args.tipo);
+    if (args.anio === SIN_FECHA) c = c.is("presupuestos.fecha", null);
+    else if (args.anio && /^\d{4}$/.test(args.anio)) c = c.gte("presupuestos.fecha", `${args.anio}-01-01`).lte("presupuestos.fecha", `${args.anio}-12-31`);
+    return c;
+  };
+
+  let consulta = base();
   for (const p of palabras) {
     const pn = normalizarPn(p);
     const opciones = [`descripcion.ilike.%${p}%`, `marca.ilike.%${p}%`, `modelo_motor.ilike.%${p}%`];
@@ -34,10 +42,7 @@ export async function buscarItems(args: { q: string; clase?: string; tipo?: stri
 
   // Si no hubo renglones, la búsqueda puede ser por cliente o proveedor.
   if (!items.length) {
-    let porNombre = supabase.from("presupuesto_items").select(CAMPOS).limit(300);
-    if (args.ids) porNombre = porNombre.in("presupuesto_id", args.ids.length ? args.ids : [-1]);
-    if (args.clase === "repuesto" || args.clase === "servicio") porNombre = porNombre.eq("clase", args.clase);
-    if (args.tipo === "propio" || args.tipo === "proveedor") porNombre = porNombre.eq("presupuestos.tipo", args.tipo);
+    let porNombre = base();
     const t = palabras.join(" ");
     porNombre = porNombre.or(`cliente.ilike.%${t}%,proveedor_nombre.ilike.%${t}%,numero.ilike.%${t}%`, { referencedTable: "presupuestos" });
     const r = await porNombre;

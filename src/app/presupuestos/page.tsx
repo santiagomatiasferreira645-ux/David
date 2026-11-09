@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { buscarItems } from "@/lib/presupuestos-datos";
-import { agruparEnCarpetas, simplificar, type Carpeta } from "@/lib/presupuestos";
+import { agruparEnCarpetas, agruparPorAnio, anioDe, simplificar, SIN_FECHA, type Carpeta } from "@/lib/presupuestos";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { ListaPresupuestos, type FilaLista } from "./lista";
 import { TarjetaPrecio } from "./precios";
 
-type Params = { q?: string; clase?: string; tipo?: string; carpeta?: string; todos?: string };
+type Params = { q?: string; clase?: string; tipo?: string; anio?: string; carpeta?: string; todos?: string };
 type Fila = FilaLista;
 
 const CLASES = [
@@ -21,11 +21,11 @@ const TIPOS = [
 
 const claveDe = (p: Fila) => simplificar((p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente)?.trim() || "Sin nombre") || "sin nombre";
 
-// Precios de referencia: lo que presupuestamos a clientes y lo que nos presupuestaron, ordenado en una carpeta por
-// cliente o proveedor. La búsqueda por PN o descripción recorre todas, o solo la carpeta abierta.
+// Precios de referencia: lo que presupuestamos a clientes y lo que nos presupuestaron, en cascada Año / Cliente (o
+// proveedor) / Presupuesto. La búsqueda por PN o descripción recorre todo, o solo el año o la carpeta abiertos.
 export default async function Presupuestos({ searchParams }: { searchParams: Params }) {
   const q = searchParams.q?.trim() ?? "";
-  const filtros = { clase: searchParams.clase ?? "", tipo: searchParams.tipo ?? "", carpeta: searchParams.carpeta ?? "" };
+  const filtros = { clase: searchParams.clase ?? "", tipo: searchParams.tipo ?? "", anio: searchParams.anio ?? "", carpeta: searchParams.carpeta ?? "" };
   const { data } = await clienteServidor()
     .from("presupuestos")
     .select("id, tipo, fecha, numero, cliente, proveedor_nombre, nombre_archivo, estado, error, presupuesto_items(count)")
@@ -35,13 +35,17 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
   const leidos = todos.filter((p) => p.estado === "listo");
   const pendientes = todos.filter((p) => p.estado !== "listo");
 
-  // Carpeta abierta: "propio|naviera sur".
+  // Año abierto ("2024" o "sin-fecha") y, dentro, carpeta abierta: "propio|naviera sur".
+  const anios = agruparPorAnio(leidos);
+  const enAnio = filtros.anio ? leidos.filter((p) => anioDe(p.fecha) === filtros.anio) : leidos;
   const [tipoCarpeta, claveCarpeta] = filtros.carpeta.split("|");
-  const enCarpeta = filtros.carpeta ? leidos.filter((p) => (p.tipo === "proveedor" ? "proveedor" : "propio") === tipoCarpeta && claveDe(p) === claveCarpeta) : null;
-  const carpetas = agruparEnCarpetas(leidos);
+  const enCarpeta = filtros.carpeta ? enAnio.filter((p) => (p.tipo === "proveedor" ? "proveedor" : "propio") === tipoCarpeta && claveDe(p) === claveCarpeta) : null;
+  const carpetas = agruparEnCarpetas(enAnio);
   const abierta = filtros.carpeta ? carpetas.find((c) => `${c.tipo}|${c.clave}` === filtros.carpeta) : null;
+  const anioTexto = filtros.anio === SIN_FECHA ? "Sin fecha" : filtros.anio;
+  const lugar = [anioTexto, abierta?.nombre].filter(Boolean).join(" · ");
 
-  const items = q ? await buscarItems({ q, clase: filtros.clase, tipo: filtros.tipo, ids: enCarpeta?.map((p) => p.id) }) : [];
+  const items = q ? await buscarItems({ q, clase: filtros.clase, tipo: filtros.tipo, anio: filtros.anio, ids: enCarpeta?.map((p) => p.id) }) : [];
   const enlace = (cambio: Partial<Params>) => {
     const s = new URLSearchParams(Object.entries({ q, ...filtros, ...cambio }).filter(([, v]) => v) as [string, string][]);
     return `/presupuestos?${s}`;
@@ -53,11 +57,25 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="subtitulo text-amarillo">Presupuestos · {todos.length} cargados</p>
-            <h1 className="titulo mt-1 break-words">{abierta ? abierta.nombre : "Precio de referencia"}</h1>
-            {abierta && (
-              <Link href={enlace({ carpeta: "", q: "" })} className="enlace text-sm">
-                ← Todas las carpetas
-              </Link>
+            <h1 className="titulo mt-1 break-words">{abierta?.nombre ?? (anioTexto ? `Año ${anioTexto}` : "Precio de referencia")}</h1>
+            {filtros.anio && (
+              <nav className="mt-1 flex flex-wrap gap-x-1.5 text-sm secundario">
+                <Link href={enlace({ anio: "", carpeta: "", q: "" })} className="enlace">
+                  Todos los años
+                </Link>
+                <span>›</span>
+                {abierta ? (
+                  <>
+                    <Link href={enlace({ carpeta: "", q: "" })} className="enlace">
+                      {anioTexto}
+                    </Link>
+                    <span>›</span>
+                    <span className="break-words">{abierta.nombre}</span>
+                  </>
+                ) : (
+                  <span>{anioTexto}</span>
+                )}
+              </nav>
             )}
           </div>
           <Link href="/presupuestos/cargar" className="boton shrink-0">
@@ -68,7 +86,7 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
           <input
             name="q"
             defaultValue={q}
-            placeholder={abierta ? `Buscar en ${abierta.nombre}...` : "PN, repuesto, servicio, motor, cliente..."}
+            placeholder={lugar ? `Buscar en ${lugar}...` : "PN, repuesto, servicio, motor, cliente..."}
             className="campo"
             autoCapitalize="none"
             enterKeyHint="search"
@@ -98,7 +116,7 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
       {q ? (
         <>
           <p className="subtitulo">
-            {items.length} {items.length === 1 ? "renglón" : "renglones"} con “{q}”{abierta && ` en ${abierta.nombre}`}
+            {items.length} {items.length === 1 ? "renglón" : "renglones"} con “{q}”{lugar && ` en ${lugar}`}
             {items.length === 300 && " (se muestran los primeros 300)"}
           </p>
           <ul className="space-y-2">
@@ -117,14 +135,38 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
         </>
       ) : enCarpeta ? (
         <ListaPresupuestos titulo={`${enCarpeta.length} presupuestos`} lista={enCarpeta} />
-      ) : (
+      ) : filtros.anio ? (
         <>
           {(["propio", "proveedor"] as const)
             .filter((t) => !filtros.tipo || filtros.tipo === t)
             .map((t) => (
               <Carpetas key={t} titulo={t === "propio" ? "Clientes" : "Proveedores"} carpetas={carpetas.filter((c) => c.tipo === t)} enlace={(c) => enlace({ carpeta: `${c.tipo}|${c.clave}` })} />
             ))}
-          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer, con error o que no son presupuestos" lista={pendientes} />}
+          {enAnio.length === 0 && <p className="tarjeta text-sm secundario">No hay presupuestos de {anioTexto}.</p>}
+        </>
+      ) : (
+        <>
+          {anios.length > 0 && (
+            <section>
+              <p className="subtitulo mb-2">Años · {anios.length}</p>
+              <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {anios.map((a) => (
+                  <li key={a.anio}>
+                    <Link href={enlace({ anio: a.anio })} className="tarjeta flex items-center gap-3 p-3 transition hover:border-acento/60">
+                      <Icono clase="text-acento" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-white">{a.anio === SIN_FECHA ? "Sin fecha" : a.anio}</span>
+                        <span className="font-mono text-xs secundario">
+                          {a.cantidad} {a.cantidad === 1 ? "presupuesto" : "presupuestos"}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer, con error o que no son presupuestos" lista={pendientes} leer />}
           {todos.length > 0 && (
             <Link href="/presupuestos?todos=1" className="enlace inline-block text-sm">
               Ver todos en una lista, para borrar varios juntos →
@@ -152,9 +194,7 @@ function Carpetas({ titulo, carpetas, enlace }: { titulo: string; carpetas: Carp
         {carpetas.map((c) => (
           <li key={c.clave}>
             <Link href={enlace(c)} className="tarjeta flex items-center gap-3 p-3 transition hover:border-acento/60">
-              <svg viewBox="0 0 24 24" className={`h-6 w-6 shrink-0 ${c.tipo === "proveedor" ? "text-cyan-300" : "text-amarillo"}`} fill="currentColor" aria-hidden>
-                <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" opacity="0.85" />
-              </svg>
+              <Icono clase={c.tipo === "proveedor" ? "text-cyan-300" : "text-amarillo"} />
               <span className="min-w-0">
                 <span className="block truncate text-white">{c.nombre}</span>
                 <span className="font-mono text-xs secundario">
@@ -167,5 +207,13 @@ function Carpetas({ titulo, carpetas, enlace }: { titulo: string; carpetas: Carp
         ))}
       </ul>
     </section>
+  );
+}
+
+function Icono({ clase }: { clase: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`h-6 w-6 shrink-0 ${clase}`} fill="currentColor" aria-hidden>
+      <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" opacity="0.85" />
+    </svg>
   );
 }

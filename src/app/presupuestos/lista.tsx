@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { Presupuesto } from "@/lib/presupuestos";
+import { nombrePresupuesto, type Presupuesto } from "@/lib/presupuestos";
 import { borrarPresupuestos } from "./acciones";
 import { TipoChip } from "./precios";
 
@@ -11,12 +11,43 @@ export type FilaLista = Pick<Presupuesto, "id" | "tipo" | "fecha" | "numero" | "
   presupuesto_items: { count: number }[];
 };
 
-// Lista de presupuestos con tildes para borrar de a uno o varios juntos.
-export function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: FilaLista[] }) {
+// Lista de presupuestos con tildes para borrar de a uno o varios juntos. Con `leer`, los tildados también se pueden
+// volver a leer con IA (los que quedaron sin leer o con error).
+export function ListaPresupuestos({ titulo, lista, leer = false }: { titulo: string; lista: FilaLista[]; leer?: boolean }) {
   const router = useRouter();
   const [tildados, setTildados] = useState<Set<number>>(new Set());
-  const [borrando, iniciar] = useTransition();
+  const [borrandoAhora, iniciar] = useTransition();
   const [mensaje, setMensaje] = useState("");
+  const [leyendo, setLeyendo] = useState<{ hechos: number; total: number } | null>(null);
+  const borrando = borrandoAhora || !!leyendo;
+
+  async function leerTildados() {
+    const ids = [...tildados];
+    if (!ids.length) return;
+    let hechos = 0;
+    let bien = 0;
+    const errores: string[] = [];
+    setMensaje("");
+    setLeyendo({ hechos, total: ids.length });
+    const cola = [...ids];
+    const trabajador = async () => {
+      for (let id = cola.shift(); id != null; id = cola.shift()) {
+        const r = await fetch("/api/presupuestos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ presupuestoId: id }) }).catch(() => null);
+        const datos = r ? await r.json().catch(() => ({})) : {};
+        if (r?.ok) bien++;
+        else errores.push(datos.error ?? `Error ${r?.status ?? "de conexión"}`);
+        setLeyendo({ hechos: ++hechos, total: ids.length });
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, ids.length) }, trabajador));
+    const noSon = errores.filter((e) => e.startsWith("No es un presupuesto")).length;
+    setMensaje(
+      [`Se leyeron ${bien} de ${ids.length}.`, noSon && `${noSon} no son presupuestos.`, errores.length - noSon && `${errores.length - noSon} con error.`].filter(Boolean).join(" "),
+    );
+    setLeyendo(null);
+    setTildados(new Set());
+    router.refresh();
+  }
 
   const cambiar = (id: number, si: boolean) =>
     setTildados((t) => {
@@ -52,7 +83,12 @@ export function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: Fi
             </button>
           </>
         )}
-        {tildados.size > 0 && (
+        {leer && tildados.size > 0 && (
+          <button type="button" onClick={leerTildados} disabled={borrando} className="chip border-acento/50 bg-acento/10 text-acento">
+            {leyendo ? `Leyendo ${leyendo.hechos} de ${leyendo.total}...` : `Leer con IA ${tildados.size} tildados`}
+          </button>
+        )}
+        {tildados.size > 0 && !leyendo && (
           <button type="button" onClick={() => borrar([...tildados])} disabled={borrando} className="chip border-red-400/40 bg-red-400/10 text-red-300">
             {borrando ? "Borrando..." : `Borrar ${tildados.size} tildados`}
           </button>
@@ -72,9 +108,9 @@ export function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: Fi
             />
             <Link href={`/presupuestos/${p.id}`} className="flex min-w-0 flex-1 flex-wrap items-center gap-2 hover:text-acento">
               <span className="mr-auto min-w-0">
-                <span className="block break-words text-white">{p.numero ? `N° ${p.numero}` : (p.nombre_archivo?.split("/").pop() ?? `#${p.id}`)}</span>
+                <span className="block break-words text-white">{nombrePresupuesto(p)}</span>
                 <span className="font-mono text-xs secundario">
-                  {[p.fecha, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
+                  {[p.fecha, p.numero && p.nombre_archivo ? `N° ${p.numero}` : null, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
                 </span>
                 {p.estado !== "listo" && p.error && <span className="block text-xs text-red-300/80">{p.error.slice(0, 160)}</span>}
               </span>
