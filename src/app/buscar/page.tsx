@@ -4,6 +4,7 @@ import { horaLocal, idiomaDe, linkLlamada, linkMail, linkWhatsapp } from "@/lib/
 import { buscar, obtenerBusqueda } from "@/lib/datos";
 import { catalogoDelPn, linkPagina, urlCatalogo, type FilaCatalogo } from "@/lib/catalogo";
 import { imagenesDelPn } from "@/lib/imagenes";
+import { listarDepositos, stockDelPn } from "@/lib/stock-datos";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
@@ -12,6 +13,7 @@ import { HojasDelPn, type Hoja } from "../catalogo/hojas-del-pn";
 import { CambiarEstado } from "./cambiar-estado";
 import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
+import { EnStock } from "../stock/en-stock";
 
 // Una hoja por cada página distinta donde aparece el PN (hasta 6), con el link firmado a su PDF.
 async function hojasDelPn(filas: FilaCatalogo[]): Promise<Hoja[]> {
@@ -45,7 +47,13 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   const busqueda = await obtenerBusqueda(Number(searchParams.id));
   if (!busqueda) redirect("/");
   const marca = busqueda.marca ?? "";
-  const [resultados, imagenes, catalogo] = await Promise.all([buscar(busqueda.pn, marca), imagenesDelPn(busqueda.pn), catalogoDelPn(busqueda.pn)]);
+  const [resultados, imagenes, catalogo, stock] = await Promise.all([
+    buscar(busqueda.pn, marca),
+    imagenesDelPn(busqueda.pn),
+    catalogoDelPn(busqueda.pn),
+    stockDelPn(busqueda.pn).catch(() => []),
+  ]);
+  const depositos = stock.length ? new Map((await listarDepositos()).map((d) => [d.id, d])) : new Map();
   const hojas = await hojasDelPn(catalogo);
   const conPrecio = resultados.filter((r) => r.ultimaCotizacion).length;
   // Si nadie cotizó ni fue consultado por este PN, la IA busca alternativas en la web sola.
@@ -89,6 +97,8 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
           </Link>
         </div>
       </div>
+
+      {stock.length > 0 && <EnStock articulos={stock} depositos={depositos} />}
 
       {catalogo.length > 0 && (
         <section className="tarjeta">
