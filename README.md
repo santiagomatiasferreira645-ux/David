@@ -15,6 +15,7 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 - **Historial**: todas las búsquedas con su estado (abierta, cotizada, comprada, perdida).
 - **Proveedores**: ficha con contactos y todos los precios registrados.
 - **Cargar precio**: registra una cotización recibida; si viene de una búsqueda, la marca como cotizada.
+- **Clientes**: ficha con contactos (WhatsApp, llamada, mail), condiciones (moneda, condición de pago, margen sobre costo) y todo lo que se le presupuestó o vendió, con precio y margen. Se pueden acordar precios por PN para cada cliente. En la ficha se escribe un PN y aparece el precio para ese cliente: el acordado, si no lo último que se le vendió o presupuestó, y si no el último costo cotizado con su margen. Al buscar un PN aparece a qué precio se le vendió a cada cliente y, si la búsqueda es para un cliente de la base, su precio sugerido con un botón para registrar la venta.
 
 ## Puesta en marcha
 
@@ -31,6 +32,8 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 6. **Fotos de referencia**: ejecutar `supabase/migrations/0003_imagenes_pn.sql` en el SQL Editor (crea el espacio privado `imagenes-pn` en Storage).
 7. **Catálogo EMD 645**: ejecutar `supabase/migrations/0004_catalogo.sql` y después los archivos con los PN del catálogo (se generan aparte con el PDF, no están en el repositorio). Subir el PDF en Storage > `catalogos` con el nombre `emd-645-catalogo-302.pdf`.
 8. **Cargar más catálogos desde la app**: ejecutar `supabase/migrations/0005_catalogos.sql`. Después, en Catálogos > Cargar catálogo se elige el PDF; la app lo guarda, lee cada página con IA (usa la misma `ANTHROPIC_API_KEY`) y agrega sus PN.
+
+9. **Clientes**: ejecutar `supabase/migrations/0009_clientes.sql` (después de las de stock, presupuestos y servicios si ya están). Para arrancar con los clientes de la agenda, ejecutar una vez el archivo de clientes iniciales que se genera aparte desde los contactos de Zoho y del teléfono (tiene datos de contactos: no se sube al repositorio).
 
 ## Desarrollo
 

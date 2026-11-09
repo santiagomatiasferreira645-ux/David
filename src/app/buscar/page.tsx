@@ -12,6 +12,7 @@ import { HojasDelPn, type Hoja } from "../catalogo/hojas-del-pn";
 import { CambiarEstado } from "./cambiar-estado";
 import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
+import { VentasClientes } from "./ventas-clientes";
 
 // Una hoja por cada página distinta donde aparece el PN (hasta 6), con el link firmado a su PDF.
 async function hojasDelPn(filas: FilaCatalogo[]): Promise<Hoja[]> {
@@ -109,6 +110,8 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
           )}
         </section>
       )}
+
+      <VentasClientes busqueda={busqueda} />
 
       {resultados.length === 0 && (
         <p className="tarjeta secundario">No hay proveedores con este PN ni con esta marca en la base.</p>
