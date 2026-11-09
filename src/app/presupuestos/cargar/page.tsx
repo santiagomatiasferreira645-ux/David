@@ -10,6 +10,8 @@ type Fila = {
   archivo: File;
   ruta: string; // con la carpeta si se eligió una carpeta entera: "COMERCIAL/Naviera Sur/oferta.pdf"
   estado: "pendiente" | "subiendo" | "leyendo" | "listo" | "error";
+  elegido: boolean; // destildado no se sube ni se lee
+
   mensaje?: string;
   id?: number;
 };
@@ -23,6 +25,9 @@ async function leerConIA(id: number) {
   if (!r.ok) throw new Error(datos.error ?? `Error ${r.status}`);
   return datos as { repuestos: number; servicios: number; tipo: "propio" | "proveedor"; aviso: string | null };
 }
+
+// Se lee lo que está tildado y todavía no se cargó (o falló después de subirse).
+const porLeer = (f: Fila) => f.elegido && (f.estado === "pendiente" || (f.estado === "error" && !!f.id));
 
 export default function CargarPresupuestos() {
   const [filas, setFilas] = useState<Fila[]>([]);
@@ -54,7 +59,7 @@ export default function CargarPresupuestos() {
         saltados.repetidos++;
         return;
       }
-      const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta };
+      const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta, elegido: true };
       if (filas.some((f) => f.ruta === ruta && f.archivo.size === archivo.size)) return;
       if (!archivoAceptado(archivo.name)) nuevas.push({ ...base, estado: "error", mensaje: "Formato no admitido. Usá PDF, Word, foto, Excel (.xlsx) o CSV." });
       else if (archivo.size > MAX_BYTES) nuevas.push({ ...base, estado: "error", mensaje: "Pesa más de 15 MB." });
@@ -99,14 +104,17 @@ export default function CargarPresupuestos() {
   async function empezar() {
     setOcupado(true);
     // Los que fallaron al leer se reintentan; los de formato inválido no tienen id y siguen con error.
-    const cola = filas.filter((f) => f.estado === "pendiente" || (f.estado === "error" && f.id));
+    const cola = filas.filter(porLeer);
     for (let i = 0; i < cola.length; i += EN_PARALELO) {
       await Promise.all(cola.slice(i, i + EN_PARALELO).map(procesar));
     }
     setOcupado(false);
   }
 
-  const pendientes = filas.filter((f) => f.estado === "pendiente" || (f.estado === "error" && f.id)).length;
+  const pendientes = filas.filter(porLeer).length;
+  const tildables = filas.filter((f) => f.estado === "pendiente" || (f.estado === "error" && f.id));
+  const tildar = (valor: boolean, clave?: string) =>
+    setFilas((fs) => fs.map((f) => (!clave || f.clave === clave ? { ...f, elegido: valor } : f)));
   const listos = filas.filter((f) => f.estado === "listo").length;
 
   return (
@@ -162,7 +170,7 @@ export default function CargarPresupuestos() {
         )}
         <div className="flex flex-wrap gap-2">
           <button className="boton" onClick={empezar} disabled={ocupado || pendientes === 0}>
-            {ocupado ? `Leyendo... ${filas.filter((f) => f.estado === "listo" || f.estado === "error").length} de ${filas.length}` : pendientes ? `Leer ${pendientes} con IA` : "Leer con IA"}
+            {ocupado ? `Leyendo... ${filas.filter((f) => f.elegido && (f.estado === "listo" || f.estado === "error")).length} de ${filas.filter((f) => f.elegido).length}` : pendientes ? `Leer ${pendientes} con IA` : "Leer con IA"}
           </button>
           {!ocupado && filas.length > 0 && (
             <button
@@ -176,10 +184,29 @@ export default function CargarPresupuestos() {
             </button>
           )}
         </div>
+        {tildables.length > 1 && !ocupado && (
+          <p className="flex flex-wrap items-center gap-3 text-sm secundario">
+            Tildá los que querés que lea la IA:
+            <button type="button" className="enlace" onClick={() => tildar(true)}>
+              Todos
+            </button>
+            <button type="button" className="enlace" onClick={() => tildar(false)}>
+              Ninguno
+            </button>
+          </p>
+        )}
         {filas.length > 0 && (
           <ul className="divide-y divide-borde/60 border-t border-borde/60">
             {filas.map((f) => (
-              <li key={f.clave} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
+              <li key={f.clave} className={`flex flex-wrap items-center gap-2 py-2.5 text-sm ${f.elegido ? "" : "opacity-50"}`}>
+                <input
+                  type="checkbox"
+                  checked={f.elegido}
+                  disabled={ocupado || !(f.estado === "pendiente" || (f.estado === "error" && f.id))}
+                  onChange={(e) => tildar(e.target.checked, f.clave)}
+                  className="h-5 w-5 shrink-0 accent-cyan-400"
+                  aria-label={`Leer ${f.archivo.name}`}
+                />
                 <span className="mr-auto min-w-0 break-all text-white">
                   {f.archivo.name}
                   {f.ruta.includes("/") && <span className="block text-xs secundario">{f.ruta.split("/").slice(0, -1).join(" / ")}</span>}
@@ -218,5 +245,5 @@ function EstadoFila({ fila }: { fila: Fila }) {
       </Link>
     );
   if (fila.estado === "error") return <span className="chip border-red-400/40 text-red-300">{fila.id ? "Error · se puede reintentar" : "No se carga"}</span>;
-  return <span className="chip border-borde text-apagado">en espera</span>;
+  return <span className="chip border-borde text-apagado">{fila.elegido ? "en espera" : "no se lee"}</span>;
 }
