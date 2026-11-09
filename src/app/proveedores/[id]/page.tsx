@@ -3,20 +3,23 @@ import { notFound } from "next/navigation";
 import { ordenarContactos } from "@/lib/busqueda";
 import { linkLlamada } from "@/lib/contacto";
 import { normalizarTelefono } from "@/lib/pn";
+import { formatoPrecio, textoUnidad, type Servicio } from "@/lib/servicios";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import type { Contacto, Cotizacion, Proveedor } from "@/lib/tipos";
 
 export default async function DetalleProveedor({ params }: { params: { id: string } }) {
   const supabase = clienteServidor();
-  const [p, c, q] = await Promise.all([
+  const [p, c, q, sv] = await Promise.all([
     supabase.from("proveedores").select("*").eq("id", params.id).maybeSingle(),
     supabase.from("contactos").select("*").eq("proveedor_id", params.id),
     supabase.from("cotizaciones").select("*").eq("proveedor_id", params.id).order("fecha", { ascending: false }).limit(200),
+    supabase.from("servicios").select("*").eq("proveedor_id", params.id).order("fecha", { ascending: false, nullsFirst: false }).limit(200),
   ]);
   if (!p.data) notFound();
   const prov = p.data as Proveedor;
   const contactos = ordenarContactos((c.data ?? []) as Contacto[]);
   const cotizaciones = (q.data ?? []) as Cotizacion[];
+  const servicios = (sv.data ?? []) as Servicio[];
 
   return (
     <div className="space-y-4">
@@ -84,6 +87,27 @@ export default async function DetalleProveedor({ params }: { params: { id: strin
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section className="tarjeta overflow-x-auto">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="subtitulo">Servicios presupuestados · {servicios.length}</h2>
+          <Link href={`/servicios/nuevo?proveedor=${prov.id}`} className="boton-secundario">Cargar servicio</Link>
+        </div>
+        <ul className="space-y-2 text-sm">
+          {servicios.map((x) => (
+            <li key={x.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-borde/60 pt-2 first:border-0 first:pt-0">
+              <span className="font-mono text-xs secundario">{x.fecha}</span>
+              <Link href={`/servicios/${x.id}`} className="min-w-0 flex-1 hover:text-acento">
+                {x.descripcion}
+              </Link>
+              <span className="whitespace-nowrap font-mono text-emerald-300">
+                {formatoPrecio(x.precio, x.moneda)} <span className="text-xs secundario">{textoUnidad(x.unidad)}</span>
+              </span>
+            </li>
+          ))}
+          {servicios.length === 0 && <li className="secundario">Sin servicios cargados.</li>}
+        </ul>
       </section>
     </div>
   );
