@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import WordExtractor from "word-extractor";
 import { NextResponse } from "next/server";
 import { leerPresupuesto, type Entrada } from "@/lib/presupuesto-ia";
 import { buscarPorNombre, extension, filaServicio, limpiarLeido, MAX_BYTES } from "@/lib/presupuestos";
@@ -34,12 +35,19 @@ async function excelATexto(datos: ArrayBuffer): Promise<string> {
   return partes.join("\n");
 }
 
+// Word (.docx o el .doc viejo) a texto, con encabezado y pie, que suelen tener los datos de la empresa y del cliente.
+async function wordATexto(datos: ArrayBuffer): Promise<string> {
+  const doc = await new WordExtractor().extract(Buffer.from(datos));
+  return [doc.getHeaders({ includeFooters: true }), doc.getBody(), doc.getFootnotes()].map((t) => t.trim()).filter(Boolean).join("\n\n");
+}
+
 async function armarEntrada(nombre: string, datos: ArrayBuffer): Promise<Entrada> {
   const ext = extension(nombre);
   if (ext === "pdf") return { tipo: "pdf", base64: Buffer.from(datos).toString("base64") };
   if (ext in IMAGENES) return { tipo: "imagen", base64: Buffer.from(datos).toString("base64"), mime: IMAGENES[ext as keyof typeof IMAGENES] };
-  const texto = ext === "xlsx" ? await excelATexto(datos) : new TextDecoder().decode(datos);
-  if (texto.length > MAX_CARACTERES) throw new Error("La planilla es demasiado grande. Separala en archivos más chicos.");
+  const texto =
+    ext === "xlsx" ? await excelATexto(datos) : ext === "docx" || ext === "doc" ? await wordATexto(datos) : new TextDecoder().decode(datos);
+  if (texto.length > MAX_CARACTERES) throw new Error("El archivo tiene demasiado texto. Separala en archivos más chicos.");
   return { tipo: "texto", texto };
 }
 

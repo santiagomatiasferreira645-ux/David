@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { archivoAceptado, buscarPorNombre, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
+import { preferirPdf, agruparEnCarpetas, archivoAceptado, buscarPorNombre, esArchivoOculto, fechaValida, filaServicio, limpiarLeido, monedaValida, rutaArchivo, type PresupuestoLeido } from "@/lib/presupuestos";
 
 const base: PresupuestoLeido = {
   tipo: "proveedor",
@@ -75,7 +75,36 @@ describe("presupuestos", () => {
   it("acepta los formatos que la IA puede leer y arma un nombre de archivo seguro", () => {
     expect(archivoAceptado("Presupuesto.PDF")).toBe(true);
     expect(archivoAceptado("foto.jpeg")).toBe(true);
-    expect(archivoAceptado("oferta.docx")).toBe(false);
+    expect(archivoAceptado("oferta.docx")).toBe(true);
+    expect(archivoAceptado("oferta.pptx")).toBe(false);
     expect(rutaArchivo("Presupuesto Nº 123 (final).pdf", 1)).toBe("1-presupuesto-n-123-final.pdf");
+  });
+
+  it("saltea archivos de sistema", () => {
+    expect(esArchivoOculto("Clientes/.DS_Store")).toBe(true);
+    expect(esArchivoOculto("Clientes/~$oferta.xlsx")).toBe(true);
+    expect(esArchivoOculto("Clientes/Thumbs.db")).toBe(true);
+    expect(esArchivoOculto("Clientes/oferta.pdf")).toBe(false);
+    expect(rutaArchivo("Clientes/Naviera Sur/Oferta 12.pdf", 5)).toBe("5-oferta-12.pdf");
+  });
+
+  it("arma una carpeta por cliente y por proveedor, juntando el mismo nombre escrito distinto", () => {
+    const c = agruparEnCarpetas([
+      { tipo: "propio", cliente: "Naviera Sur S.A.", proveedor_nombre: null, fecha: "2023-05-01" },
+      { tipo: "propio", cliente: "NAVIERA SUR", proveedor_nombre: null, fecha: "2024-01-10" },
+      { tipo: "propio", cliente: "Naviera Sur S.A.", proveedor_nombre: null, fecha: null },
+      { tipo: "proveedor", cliente: "Naviera Sur", proveedor_nombre: "Wartsila", fecha: "2022-01-01" },
+      { tipo: "propio", cliente: null, proveedor_nombre: null, fecha: null },
+    ]);
+    expect(c).toEqual([
+      { tipo: "propio", clave: "naviera sur", nombre: "Naviera Sur S.A.", cantidad: 3, ultimaFecha: "2024-01-10" },
+      { tipo: "proveedor", clave: "wartsila", nombre: "Wartsila", cantidad: 1, ultimaFecha: "2022-01-01" },
+      { tipo: "propio", clave: "sin nombre", nombre: "Sin nombre", cantidad: 1, ultimaFecha: null },
+    ]);
+  });
+
+  it("entre el mismo presupuesto en PDF y Word se queda con el PDF", () => {
+    const r = preferirPdf(["C/A/Oferta 12.docx", "C/A/Oferta 12.pdf", "C/A/Oferta 13.doc", "C/A/Oferta 13.DOCX", "C/B/Oferta 12.docx"]);
+    expect([...r].sort()).toEqual(["C/A/Oferta 12.pdf", "C/A/Oferta 13.DOCX", "C/B/Oferta 12.docx"]);
   });
 });

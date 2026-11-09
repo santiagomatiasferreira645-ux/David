@@ -13,12 +13,13 @@ const porFecha = (a: ItemConPresupuesto, b: ItemConPresupuesto) => (b.presupuest
 
 // Renglones de presupuestos que coinciden con el texto: cada palabra tiene que estar en el PN, la descripción, la marca,
 // el motor, el cliente o el proveedor. Más recientes primero.
-export async function buscarItems(args: { q: string; clase?: string; tipo?: string }): Promise<ItemConPresupuesto[]> {
+export async function buscarItems(args: { q: string; clase?: string; tipo?: string; ids?: number[] }): Promise<ItemConPresupuesto[]> {
   const supabase = clienteServidor();
   const palabras = limpiarFiltro(args.q).split(/\s+/).filter(Boolean).slice(0, 5);
   if (!palabras.length) return [];
 
   let consulta = supabase.from("presupuesto_items").select(CAMPOS).limit(300);
+  if (args.ids) consulta = consulta.in("presupuesto_id", args.ids.length ? args.ids : [-1]);
   if (args.clase === "repuesto" || args.clase === "servicio") consulta = consulta.eq("clase", args.clase);
   if (args.tipo === "propio" || args.tipo === "proveedor") consulta = consulta.eq("presupuestos.tipo", args.tipo);
   for (const p of palabras) {
@@ -34,6 +35,7 @@ export async function buscarItems(args: { q: string; clase?: string; tipo?: stri
   // Si no hubo renglones, la búsqueda puede ser por cliente o proveedor.
   if (!items.length) {
     let porNombre = supabase.from("presupuesto_items").select(CAMPOS).limit(300);
+    if (args.ids) porNombre = porNombre.in("presupuesto_id", args.ids.length ? args.ids : [-1]);
     if (args.clase === "repuesto" || args.clase === "servicio") porNombre = porNombre.eq("clase", args.clase);
     if (args.tipo === "propio" || args.tipo === "proveedor") porNombre = porNombre.eq("presupuestos.tipo", args.tipo);
     const t = palabras.join(" ");
