@@ -10,6 +10,7 @@ const MENU = [
   { href: "/proveedores", texto: "Proveedores" },
   { href: "/repuestos", texto: "Repuestos" },
   { href: "/catalogo", texto: "Catálogos" },
+  { href: "/servicios", texto: "Servicios" },
   { href: "/cotizaciones/nueva", texto: "Cargar precio", corto: "Precio" },
 ];
 
