@@ -64,6 +64,69 @@ export type Busqueda = {
   marca: string | null;
   cantidad: number | null;
   cliente: string | null;
+  cliente_id?: string | null;
   estado: "abierta" | "cotizada" | "comprada" | "perdida";
   creado_en: string;
+};
+
+export type Cliente = {
+  id: string;
+  empresa: string;
+  razon_social: string | null;
+  ruc: string | null;
+  pais: string | null;
+  ciudad: string | null;
+  tipo: string | null;
+  moneda: string;
+  condicion_pago: string | null;
+  margen_pct: number | null;
+  dominios: string | null;
+  notas: string | null;
+  origen: string | null;
+};
+
+export type ContactoCliente = {
+  id: number;
+  cliente_id: string;
+  nombre: string | null;
+  cargo: string | null;
+  email: string | null;
+  telefono: string | null;
+  tiene_whatsapp: "Sí" | "No" | "No sé";
+  notas: string | null;
+};
+
+export type Venta = {
+  id: number;
+  cliente_id: string;
+  fecha: string;
+  comprobante: string | null;
+  estado: "Presupuestado" | "Vendido" | "Perdido";
+  pn: string | null;
+  pn_normalizado: string | null;
+  marca: string | null;
+  descripcion: string | null;
+  modelo_motor: string | null;
+  embarcacion: string | null;
+  cantidad: number | null;
+  precio_unitario: number | null;
+  moneda: string | null;
+  costo_unitario: number | null;
+  proveedor_id: string | null;
+  busqueda_id: number | null;
+  plazo_entrega: string | null;
+  notas: string | null;
+};
+
+export type PrecioCliente = {
+  id: number;
+  cliente_id: string;
+  pn: string;
+  pn_normalizado: string;
+  marca: string | null;
+  descripcion: string | null;
+  precio: number;
+  moneda: string;
+  vigente_hasta: string | null;
+  notas: string | null;
 };
