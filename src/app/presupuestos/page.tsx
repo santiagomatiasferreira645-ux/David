@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { buscarItems } from "@/lib/presupuestos-datos";
-import { agruparEnCarpetas, simplificar, type Carpeta, type Presupuesto } from "@/lib/presupuestos";
+import { agruparEnCarpetas, simplificar, type Carpeta } from "@/lib/presupuestos";
 import { clienteServidor } from "@/lib/supabase/servidor";
-import { TarjetaPrecio, TipoChip } from "./precios";
+import { ListaPresupuestos, type FilaLista } from "./lista";
+import { TarjetaPrecio } from "./precios";
 
-type Params = { q?: string; clase?: string; tipo?: string; carpeta?: string };
-type Fila = Pick<Presupuesto, "id" | "tipo" | "fecha" | "numero" | "cliente" | "proveedor_nombre" | "nombre_archivo" | "estado" | "error"> & {
-  presupuesto_items: { count: number }[];
-};
+type Params = { q?: string; clase?: string; tipo?: string; carpeta?: string; todos?: string };
+type Fila = FilaLista;
 
 const CLASES = [
   { valor: "", texto: "Todo" },
@@ -109,6 +108,13 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
             {items.length === 0 && <li className="tarjeta secundario">No hay nada presupuestado con ese texto.</li>}
           </ul>
         </>
+      ) : searchParams.todos ? (
+        <>
+          <Link href="/presupuestos" className="enlace text-sm">
+            ← Volver a las carpetas
+          </Link>
+          <ListaPresupuestos titulo={`Todos · ${todos.length}`} lista={todos} />
+        </>
       ) : enCarpeta ? (
         <ListaPresupuestos titulo={`${enCarpeta.length} presupuestos`} lista={enCarpeta} />
       ) : (
@@ -118,7 +124,12 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
             .map((t) => (
               <Carpetas key={t} titulo={t === "propio" ? "Clientes" : "Proveedores"} carpetas={carpetas.filter((c) => c.tipo === t)} enlace={(c) => enlace({ carpeta: `${c.tipo}|${c.clave}` })} />
             ))}
-          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer o con error" lista={pendientes} />}
+          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer, con error o que no son presupuestos" lista={pendientes} />}
+          {todos.length > 0 && (
+            <Link href="/presupuestos?todos=1" className="enlace inline-block text-sm">
+              Ver todos en una lista, para borrar varios juntos →
+            </Link>
+          )}
           {todos.length === 0 && (
             <p className="tarjeta text-sm secundario">
               Todavía no hay presupuestos. <Link href="/presupuestos/cargar" className="enlace">Cargá los primeros</Link>.
@@ -151,33 +162,6 @@ function Carpetas({ titulo, carpetas, enlace }: { titulo: string; carpetas: Carp
                   {c.ultimaFecha && ` · último ${c.ultimaFecha}`}
                 </span>
               </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: Fila[] }) {
-  return (
-    <section className="tarjeta">
-      <p className="subtitulo mb-2">{titulo}</p>
-      <ul className="divide-y divide-borde/60">
-        {lista.map((p) => (
-          <li key={p.id}>
-            <Link href={`/presupuestos/${p.id}`} className="flex flex-wrap items-center gap-2 py-2.5 hover:text-acento">
-              <span className="mr-auto min-w-0">
-                <span className="block break-words text-white">{p.numero ? `N° ${p.numero}` : (p.nombre_archivo?.split("/").pop() ?? `#${p.id}`)}</span>
-                <span className="font-mono text-xs secundario">
-                  {[p.fecha, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
-                </span>
-              </span>
-              {p.estado === "listo" ? (
-                <TipoChip tipo={p.tipo} />
-              ) : (
-                <span className={`chip ${p.estado === "error" ? "border-red-400/40 text-red-300" : "border-amber-400/40 text-amber-300"}`}>{p.estado === "error" ? "error" : "sin leer"}</span>
-              )}
             </Link>
           </li>
         ))}
