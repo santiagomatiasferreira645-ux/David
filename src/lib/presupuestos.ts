@@ -28,6 +28,8 @@ export type ItemLeido = {
 };
 
 export type PresupuestoLeido = {
+  es_presupuesto?: boolean;
+  documento?: string;
   tipo: "propio" | "proveedor";
   empresa: string | null;
   numero: string | null;

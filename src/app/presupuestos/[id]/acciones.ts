@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fechaValida, monedaValida } from "@/lib/presupuestos";
 import { clienteServidor } from "@/lib/supabase/servidor";
+import { borrarPresupuestos } from "../acciones";
 
 const texto = (f: FormData, k: string) => String(f.get(k) ?? "").trim() || null;
 const numero = (f: FormData, k: string) => {
@@ -51,14 +52,7 @@ export async function borrarItem(presupuestoId: number, itemId: number) {
   revalidatePath(`/presupuestos/${presupuestoId}`);
 }
 
-// Borra el presupuesto, su archivo y los servicios que se pasaron al módulo de Servicios.
 export async function borrarPresupuesto(id: number) {
-  const supabase = clienteServidor();
-  const { data } = await supabase.from("presupuestos").select("archivo").eq("id", id).maybeSingle();
-  if (!data) redirect("/presupuestos");
-  await supabase.from("servicios").delete().eq("presupuesto_id", id); // si la tabla no existe, no pasa nada
-  await supabase.storage.from("presupuestos").remove([data.archivo]);
-  await supabase.from("presupuestos").delete().eq("id", id);
-  revalidatePath("/presupuestos");
+  await borrarPresupuestos([id]);
   redirect("/presupuestos");
 }

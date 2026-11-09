@@ -73,7 +73,13 @@ export async function POST(request: Request) {
     if (archivo.size > MAX_BYTES) return fallar("El archivo pesa más de 15 MB.", 400);
 
     const nombre = p.nombre_archivo ?? p.archivo;
-    const leido = limpiarLeido(await leerPresupuesto(await armarEntrada(nombre, await archivo.arrayBuffer()), nombre));
+    const bruto = await leerPresupuesto(await armarEntrada(nombre, await archivo.arrayBuffer()), nombre);
+    // Facturas, remitos, órdenes de compra y demás no se cargan: quedan marcados para borrarlos desde la lista.
+    if (bruto.es_presupuesto === false) {
+      await supabase.from("presupuesto_items").delete().eq("presupuesto_id", p.id);
+      return fallar(`No es un presupuesto${bruto.documento?.trim() ? ` (${bruto.documento.trim().toLowerCase()})` : ""}: no se cargó.`, 422);
+    }
+    const leido = limpiarLeido(bruto);
 
     // Proveedor y cliente por nombre; la tabla clientes puede no existir todavía, en ese caso queda solo el texto.
     const [{ data: proveedores }, clientes] = await Promise.all([

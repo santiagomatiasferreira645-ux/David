@@ -26,6 +26,8 @@ async function leerConIA(id: number) {
   return datos as { repuestos: number; servicios: number; tipo: "propio" | "proveedor"; aviso: string | null };
 }
 
+const noEsPresupuesto = (mensaje?: string) => !!mensaje?.startsWith("No es un presupuesto");
+
 // Se lee lo que está tildado y todavía no se cargó (o falló después de subirse).
 const porLeer = (f: Fila) => f.elegido && (f.estado === "pendiente" || (f.estado === "error" && !!f.id));
 
@@ -97,7 +99,9 @@ export default function CargarPresupuestos() {
       const partes = [r.tipo === "propio" ? "Nuestro presupuesto" : "De proveedor", `${r.repuestos} repuestos`, `${r.servicios} servicios`];
       actualizar(f.clave, { estado: "listo", mensaje: partes.join(" · ") + (r.aviso ? `. ${r.aviso}` : "") });
     } catch (e) {
-      actualizar(f.clave, { estado: "error", mensaje: e instanceof Error ? e.message : String(e) });
+      const mensaje = e instanceof Error ? e.message : String(e);
+      // Lo que la IA reconoce como factura, remito, etc. no se vuelve a intentar.
+      actualizar(f.clave, { estado: "error", mensaje, ...(noEsPresupuesto(mensaje) ? { elegido: false } : {}) });
     }
   }
 
@@ -244,6 +248,7 @@ function EstadoFila({ fila }: { fila: Fila }) {
         Listo · ver
       </Link>
     );
+  if (fila.estado === "error" && noEsPresupuesto(fila.mensaje)) return <span className="chip border-amber-400/40 text-amber-300">No es presupuesto</span>;
   if (fila.estado === "error") return <span className="chip border-red-400/40 text-red-300">{fila.id ? "Error · se puede reintentar" : "No se carga"}</span>;
   return <span className="chip border-borde text-apagado">{fila.elegido ? "en espera" : "no se lee"}</span>;
 }
