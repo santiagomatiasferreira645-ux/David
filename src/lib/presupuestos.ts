@@ -80,8 +80,10 @@ export type ItemPresupuesto = {
 
 export const TIPO_TEXTO = { propio: "Nuestro presupuesto", proveedor: "De proveedor" } as const;
 
-// Archivos que la IA puede leer: PDF y fotos directo, Excel y CSV pasados a texto.
-export const EXTENSIONES = ["pdf", "jpg", "jpeg", "png", "webp", "gif", "xlsx", "csv", "txt"] as const;
+// Archivos que la IA puede leer: PDF y fotos directo; Word, Excel y CSV pasados a texto.
+export const EXTENSIONES = ["pdf", "doc", "docx", "jpg", "jpeg", "png", "webp", "gif", "xlsx", "csv", "txt"] as const;
+// Al elegir una carpeta entera solo se toman los presupuestos propiamente dichos, que están en PDF o Word.
+export const EXTENSIONES_CARPETA = ["pdf", "docx", "doc"] as const;
 export const MAX_BYTES = 15 * 1024 * 1024;
 
 export function extension(nombre: string): string {
@@ -90,6 +92,22 @@ export function extension(nombre: string): string {
 
 export function archivoAceptado(nombre: string): boolean {
   return (EXTENSIONES as readonly string[]).includes(extension(nombre));
+}
+
+// Entre archivos con el mismo nombre en la misma carpeta ("Oferta 12.pdf" y "Oferta 12.docx") queda uno solo,
+// en este orden de preferencia: PDF, Word nuevo, Word viejo. Devuelve las rutas que se cargan.
+export function preferirPdf(rutas: string[]): Set<string> {
+  const orden = (r: string) => {
+    const i = (EXTENSIONES_CARPETA as readonly string[]).indexOf(extension(r));
+    return i < 0 ? 99 : i;
+  };
+  const mejor = new Map<string, string>();
+  for (const r of rutas) {
+    const clave = r.replace(/\.[^./]+$/, "").toLowerCase().trim();
+    const actual = mejor.get(clave);
+    if (!actual || orden(r) < orden(actual)) mejor.set(clave, r);
+  }
+  return new Set(mejor.values());
 }
 
 // Archivos de sistema o temporales que aparecen al elegir una carpeta entera.
@@ -174,7 +192,7 @@ export function limpiarLeido(l: PresupuestoLeido): PresupuestoLeido {
   };
 }
 
-const simplificar = (s: string) =>
+export const simplificar = (s: string) =>
   s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -223,6 +241,27 @@ export function filaServicio(
     origen: "Presupuesto histórico",
     notas: i.notas,
   };
+}
+
+export type Carpeta = { tipo: "propio" | "proveedor"; clave: string; nombre: string; cantidad: number; ultimaFecha: string | null };
+
+// Agrupa los presupuestos en una carpeta por cliente (los nuestros) o por proveedor, juntando el mismo nombre escrito
+// distinto ("Naviera Sur S.A." y "NAVIERA SUR"). La carpeta muestra el nombre que más se repite.
+export function agruparEnCarpetas(lista: { tipo: string | null; cliente: string | null; proveedor_nombre: string | null; fecha: string | null }[]): Carpeta[] {
+  const grupos = new Map<string, { tipo: Carpeta["tipo"]; clave: string; nombres: Map<string, number>; cantidad: number; ultimaFecha: string | null }>();
+  for (const p of lista) {
+    const tipo: Carpeta["tipo"] = p.tipo === "proveedor" ? "proveedor" : "propio";
+    const nombre = (tipo === "proveedor" ? p.proveedor_nombre : p.cliente)?.trim() || "Sin nombre";
+    const clave = simplificar(nombre) || "sin nombre";
+    const g = grupos.get(`${tipo}|${clave}`) ?? { tipo, clave, nombres: new Map(), cantidad: 0, ultimaFecha: null };
+    g.nombres.set(nombre, (g.nombres.get(nombre) ?? 0) + 1);
+    g.cantidad++;
+    if (p.fecha && (!g.ultimaFecha || p.fecha > g.ultimaFecha)) g.ultimaFecha = p.fecha;
+    grupos.set(`${tipo}|${clave}`, g);
+  }
+  return [...grupos.values()]
+    .map((g) => ({ tipo: g.tipo, clave: g.clave, cantidad: g.cantidad, ultimaFecha: g.ultimaFecha, nombre: [...g.nombres].sort((a, b) => b[1] - a[1])[0][0] }))
+    .sort((a, b) => (a.clave === "sin nombre" ? 1 : b.clave === "sin nombre" ? -1 : a.nombre.localeCompare(b.nombre, "es")));
 }
 
 // Caracteres con significado en los filtros de PostgREST (or=, ilike).

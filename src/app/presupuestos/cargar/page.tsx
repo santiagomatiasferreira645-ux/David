@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { archivoAceptado, esArchivoOculto, EXTENSIONES, MAX_BYTES, rutaArchivo } from "@/lib/presupuestos";
+import { archivoAceptado, esArchivoOculto, extension, EXTENSIONES, EXTENSIONES_CARPETA, MAX_BYTES, preferirPdf, rutaArchivo } from "@/lib/presupuestos";
 import { clienteNavegador } from "@/lib/supabase/navegador";
 
 type Fila = {
@@ -27,7 +27,7 @@ async function leerConIA(id: number) {
 export default function CargarPresupuestos() {
   const [filas, setFilas] = useState<Fila[]>([]);
   const [ocupado, setOcupado] = useState(false);
-  const [ignorados, setIgnorados] = useState(0);
+  const [ignorados, setIgnorados] = useState({ formato: 0, repetidos: 0 });
 
   const actualizar = (clave: string, cambio: Partial<Fila>) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, ...cambio } : f)));
 
@@ -38,25 +38,29 @@ export default function CargarPresupuestos() {
     return () => window.removeEventListener("beforeunload", avisar);
   }, [ocupado]);
 
-  // Desde una carpeta entera se saltean en silencio los archivos que la IA no lee (Word, accesos directos...) y se cuentan.
+  // Desde una carpeta entera se toman solo PDF y Word, y si el mismo presupuesto está en los dos formatos, el PDF.
+  // Lo demás se saltea en silencio y se cuenta.
   function elegir(lista: FileList | null, deCarpeta: boolean) {
     if (!lista) return;
-    let saltados = 0;
+    const saltados = { formato: 0, repetidos: 0 };
     const nuevas: Fila[] = [];
-    Array.from(lista).forEach((archivo, i) => {
+    const archivos = Array.from(lista).filter((a) => !esArchivoOculto(a.webkitRelativePath || a.name));
+    const deFormato = deCarpeta ? archivos.filter((a) => (EXTENSIONES_CARPETA as readonly string[]).includes(extension(a.name))) : archivos;
+    saltados.formato = archivos.length - deFormato.length;
+    const preferidos = deCarpeta ? preferirPdf(deFormato.map((a) => a.webkitRelativePath || a.name)) : null;
+    deFormato.forEach((archivo, i) => {
       const ruta = archivo.webkitRelativePath || archivo.name;
-      if (esArchivoOculto(ruta)) return;
-      if (deCarpeta && !archivoAceptado(archivo.name)) {
-        saltados++;
+      if (preferidos && !preferidos.has(ruta)) {
+        saltados.repetidos++;
         return;
       }
       const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta };
       if (filas.some((f) => f.ruta === ruta && f.archivo.size === archivo.size)) return;
-      if (!archivoAceptado(archivo.name)) nuevas.push({ ...base, estado: "error", mensaje: "Formato no admitido. Usá PDF, foto, Excel (.xlsx) o CSV. Un Word se puede guardar como PDF." });
+      if (!archivoAceptado(archivo.name)) nuevas.push({ ...base, estado: "error", mensaje: "Formato no admitido. Usá PDF, Word, foto, Excel (.xlsx) o CSV." });
       else if (archivo.size > MAX_BYTES) nuevas.push({ ...base, estado: "error", mensaje: "Pesa más de 15 MB." });
       else nuevas.push({ ...base, estado: "pendiente" });
     });
-    setIgnorados((n) => n + saltados);
+    setIgnorados((n) => ({ formato: n.formato + saltados.formato, repetidos: n.repetidos + saltados.repetidos }));
     setFilas((fs) => [...fs, ...nuevas]);
   }
 
@@ -112,7 +116,7 @@ export default function CargarPresupuestos() {
           <p className="subtitulo text-amarillo">Presupuestos históricos</p>
           <h1 className="titulo mt-1">Cargar presupuestos</h1>
           <p className="mt-1 text-sm secundario">
-            Elegí uno o varios presupuestos, o una carpeta entera: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Con una carpeta entran todos los archivos de sus subcarpetas. Lo que ya estaba cargado no se repite. Cada archivo tarda entre 10 y 40 segundos.
+            Elegí uno o varios presupuestos, o una carpeta entera: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, Word, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Con una carpeta entran los PDF y Word de todas sus subcarpetas; si un presupuesto está en los dos formatos, se toma el PDF. Lo que ya estaba cargado no se repite. Cada archivo tarda entre 10 y 40 segundos.
           </p>
         </div>
         <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-acento/50 p-6 text-center ${ocupado ? "pointer-events-none opacity-50" : "hover:bg-acento/5"}`}>
@@ -150,7 +154,12 @@ export default function CargarPresupuestos() {
             }}
           />
         </label>
-        {ignorados > 0 && <p className="text-xs secundario">Se saltearon {ignorados} archivos que no son PDF, foto, Excel ni CSV (por ejemplo, Word).</p>}
+        {(ignorados.formato > 0 || ignorados.repetidos > 0) && (
+          <p className="text-xs secundario">
+            {ignorados.formato > 0 && `Se saltearon ${ignorados.formato} archivos que no son PDF ni Word. `}
+            {ignorados.repetidos > 0 && `${ignorados.repetidos} Word no se cargan porque tienen su PDF con el mismo nombre.`}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <button className="boton" onClick={empezar} disabled={ocupado || pendientes === 0}>
             {ocupado ? `Leyendo... ${filas.filter((f) => f.estado === "listo" || f.estado === "error").length} de ${filas.length}` : pendientes ? `Leer ${pendientes} con IA` : "Leer con IA"}
@@ -160,7 +169,7 @@ export default function CargarPresupuestos() {
               className="boton-secundario"
               onClick={() => {
                 setFilas([]);
-                setIgnorados(0);
+                setIgnorados({ formato: 0, repetidos: 0 });
               }}
             >
               Limpiar lista

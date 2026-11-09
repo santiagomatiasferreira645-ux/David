@@ -72,7 +72,7 @@ export async function leerPresupuesto(entrada: Entrada, nombreArchivo: string): 
   } else if (entrada.tipo === "imagen") {
     contenido.push({ type: "image", source: { type: "base64", media_type: entrada.mime, data: entrada.base64 } });
   } else {
-    contenido.push({ type: "text", text: `Contenido de la planilla:\n${entrada.texto}` });
+    contenido.push({ type: "text", text: `Contenido del archivo (texto extraído de un Word o una planilla):\n${entrada.texto}` });
   }
   contenido.push({ type: "text", text: `Archivo: ${nombreArchivo}. Extraé el presupuesto.` });
 

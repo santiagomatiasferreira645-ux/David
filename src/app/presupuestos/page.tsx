@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { buscarItems } from "@/lib/presupuestos-datos";
-import type { Presupuesto } from "@/lib/presupuestos";
+import { agruparEnCarpetas, simplificar, type Carpeta, type Presupuesto } from "@/lib/presupuestos";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { TarjetaPrecio, TipoChip } from "./precios";
 
-type Params = { q?: string; clase?: string; tipo?: string };
+type Params = { q?: string; clase?: string; tipo?: string; carpeta?: string };
+type Fila = Pick<Presupuesto, "id" | "tipo" | "fecha" | "numero" | "cliente" | "proveedor_nombre" | "nombre_archivo" | "estado" | "error"> & {
+  presupuesto_items: { count: number }[];
+};
 
 const CLASES = [
   { valor: "", texto: "Todo" },
@@ -17,19 +20,29 @@ const TIPOS = [
   { valor: "proveedor", texto: "De proveedores" },
 ];
 
-// Precios de referencia: lo que presupuestamos a clientes y lo que nos presupuestaron, buscado por PN o descripción.
+const claveDe = (p: Fila) => simplificar((p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente)?.trim() || "Sin nombre") || "sin nombre";
+
+// Precios de referencia: lo que presupuestamos a clientes y lo que nos presupuestaron, ordenado en una carpeta por
+// cliente o proveedor. La búsqueda por PN o descripción recorre todas, o solo la carpeta abierta.
 export default async function Presupuestos({ searchParams }: { searchParams: Params }) {
   const q = searchParams.q?.trim() ?? "";
-  const filtros = { clase: searchParams.clase ?? "", tipo: searchParams.tipo ?? "" };
-  const supabase = clienteServidor();
-  const [items, recientes, total] = await Promise.all([
-    q ? buscarItems({ q, ...filtros }) : Promise.resolve([]),
-    q
-      ? Promise.resolve({ data: [] })
-      : supabase.from("presupuestos").select("id, tipo, fecha, numero, cliente, proveedor_nombre, nombre_archivo, estado, error, presupuesto_items(count)").order("creado_en", { ascending: false }).limit(40),
-    supabase.from("presupuestos").select("id", { count: "exact", head: true }),
-  ]);
-  const lista = (recientes.data ?? []) as (Presupuesto & { presupuesto_items: { count: number }[] })[];
+  const filtros = { clase: searchParams.clase ?? "", tipo: searchParams.tipo ?? "", carpeta: searchParams.carpeta ?? "" };
+  const { data } = await clienteServidor()
+    .from("presupuestos")
+    .select("id, tipo, fecha, numero, cliente, proveedor_nombre, nombre_archivo, estado, error, presupuesto_items(count)")
+    .order("fecha", { ascending: false, nullsFirst: false })
+    .limit(5000);
+  const todos = (data ?? []) as Fila[];
+  const leidos = todos.filter((p) => p.estado === "listo");
+  const pendientes = todos.filter((p) => p.estado !== "listo");
+
+  // Carpeta abierta: "propio|naviera sur".
+  const [tipoCarpeta, claveCarpeta] = filtros.carpeta.split("|");
+  const enCarpeta = filtros.carpeta ? leidos.filter((p) => (p.tipo === "proveedor" ? "proveedor" : "propio") === tipoCarpeta && claveDe(p) === claveCarpeta) : null;
+  const carpetas = agruparEnCarpetas(leidos);
+  const abierta = filtros.carpeta ? carpetas.find((c) => `${c.tipo}|${c.clave}` === filtros.carpeta) : null;
+
+  const items = q ? await buscarItems({ q, clase: filtros.clase, tipo: filtros.tipo, ids: enCarpeta?.map((p) => p.id) }) : [];
   const enlace = (cambio: Partial<Params>) => {
     const s = new URLSearchParams(Object.entries({ q, ...filtros, ...cambio }).filter(([, v]) => v) as [string, string][]);
     return `/presupuestos?${s}`;
@@ -39,18 +52,29 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
     <div className="space-y-4">
       <form className="tarjeta space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="subtitulo text-amarillo">Presupuestos · {total.count ?? 0} cargados</p>
-            <h1 className="titulo mt-1">Precio de referencia</h1>
+          <div className="min-w-0">
+            <p className="subtitulo text-amarillo">Presupuestos · {todos.length} cargados</p>
+            <h1 className="titulo mt-1 break-words">{abierta ? abierta.nombre : "Precio de referencia"}</h1>
+            {abierta && (
+              <Link href={enlace({ carpeta: "", q: "" })} className="enlace text-sm">
+                ← Todas las carpetas
+              </Link>
+            )}
           </div>
           <Link href="/presupuestos/cargar" className="boton shrink-0">
             + Cargar
           </Link>
         </div>
         <div className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="PN, repuesto, servicio, motor, cliente..." className="campo" autoCapitalize="none" enterKeyHint="search" />
-          {filtros.clase && <input type="hidden" name="clase" value={filtros.clase} />}
-          {filtros.tipo && <input type="hidden" name="tipo" value={filtros.tipo} />}
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder={abierta ? `Buscar en ${abierta.nombre}...` : "PN, repuesto, servicio, motor, cliente..."}
+            className="campo"
+            autoCapitalize="none"
+            enterKeyHint="search"
+          />
+          {Object.entries(filtros).map(([k, v]) => v && <input key={k} type="hidden" name={k} value={v} />)}
           <button className="boton shrink-0">Buscar</button>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -59,19 +83,24 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
               {c.texto}
             </Link>
           ))}
-          <span className="w-2" />
-          {TIPOS.map((t) => (
-            <Link key={t.valor} href={enlace({ tipo: t.valor })} className={`chip ${filtros.tipo === t.valor ? "border-acento/50 bg-acento/10 text-acento" : "border-borde text-apagado"}`}>
-              {t.texto}
-            </Link>
-          ))}
+          {!abierta && (
+            <>
+              <span className="w-2" />
+              {TIPOS.map((t) => (
+                <Link key={t.valor} href={enlace({ tipo: t.valor })} className={`chip ${filtros.tipo === t.valor ? "border-acento/50 bg-acento/10 text-acento" : "border-borde text-apagado"}`}>
+                  {t.texto}
+                </Link>
+              ))}
+            </>
+          )}
         </div>
       </form>
 
       {q ? (
         <>
           <p className="subtitulo">
-            {items.length} {items.length === 1 ? "renglón" : "renglones"} con “{q}”{items.length === 300 && " (se muestran los primeros 300)"}
+            {items.length} {items.length === 1 ? "renglón" : "renglones"} con “{q}”{abierta && ` en ${abierta.nombre}`}
+            {items.length === 300 && " (se muestran los primeros 300)"}
           </p>
           <ul className="space-y-2">
             {items.map((i) => (
@@ -80,31 +109,79 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
             {items.length === 0 && <li className="tarjeta secundario">No hay nada presupuestado con ese texto.</li>}
           </ul>
         </>
+      ) : enCarpeta ? (
+        <ListaPresupuestos titulo={`${enCarpeta.length} presupuestos`} lista={enCarpeta} />
       ) : (
-        <section className="tarjeta">
-          <p className="subtitulo mb-2">Últimos cargados</p>
-          <ul className="divide-y divide-borde/60">
-            {lista.map((p) => (
-              <li key={p.id}>
-                <Link href={`/presupuestos/${p.id}`} className="flex flex-wrap items-center gap-2 py-2.5 hover:text-acento">
-                  <span className="mr-auto min-w-0">
-                    <span className="block text-white">{(p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? p.nombre_archivo}</span>
-                    <span className="font-mono text-xs secundario">
-                      {[p.fecha, p.numero && `N° ${p.numero}`, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                  {p.estado === "listo" ? <TipoChip tipo={p.tipo} /> : <span className={`chip ${p.estado === "error" ? "border-red-400/40 text-red-300" : "border-amber-400/40 text-amber-300"}`}>{p.estado === "error" ? "error" : "sin leer"}</span>}
-                </Link>
-              </li>
+        <>
+          {(["propio", "proveedor"] as const)
+            .filter((t) => !filtros.tipo || filtros.tipo === t)
+            .map((t) => (
+              <Carpetas key={t} titulo={t === "propio" ? "Clientes" : "Proveedores"} carpetas={carpetas.filter((c) => c.tipo === t)} enlace={(c) => enlace({ carpeta: `${c.tipo}|${c.clave}` })} />
             ))}
-            {lista.length === 0 && (
-              <li className="py-2 text-sm secundario">
-                Todavía no hay presupuestos. <Link href="/presupuestos/cargar" className="enlace">Cargá los primeros</Link>.
-              </li>
-            )}
-          </ul>
-        </section>
+          {pendientes.length > 0 && <ListaPresupuestos titulo="Sin leer o con error" lista={pendientes} />}
+          {todos.length === 0 && (
+            <p className="tarjeta text-sm secundario">
+              Todavía no hay presupuestos. <Link href="/presupuestos/cargar" className="enlace">Cargá los primeros</Link>.
+            </p>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function Carpetas({ titulo, carpetas, enlace }: { titulo: string; carpetas: Carpeta[]; enlace: (c: Carpeta) => string }) {
+  if (!carpetas.length) return null;
+  return (
+    <section>
+      <p className="subtitulo mb-2">
+        {titulo} · {carpetas.length}
+      </p>
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {carpetas.map((c) => (
+          <li key={c.clave}>
+            <Link href={enlace(c)} className="tarjeta flex items-center gap-3 p-3 transition hover:border-acento/60">
+              <svg viewBox="0 0 24 24" className={`h-6 w-6 shrink-0 ${c.tipo === "proveedor" ? "text-cyan-300" : "text-amarillo"}`} fill="currentColor" aria-hidden>
+                <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" opacity="0.85" />
+              </svg>
+              <span className="min-w-0">
+                <span className="block truncate text-white">{c.nombre}</span>
+                <span className="font-mono text-xs secundario">
+                  {c.cantidad} {c.cantidad === 1 ? "presupuesto" : "presupuestos"}
+                  {c.ultimaFecha && ` · último ${c.ultimaFecha}`}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ListaPresupuestos({ titulo, lista }: { titulo: string; lista: Fila[] }) {
+  return (
+    <section className="tarjeta">
+      <p className="subtitulo mb-2">{titulo}</p>
+      <ul className="divide-y divide-borde/60">
+        {lista.map((p) => (
+          <li key={p.id}>
+            <Link href={`/presupuestos/${p.id}`} className="flex flex-wrap items-center gap-2 py-2.5 hover:text-acento">
+              <span className="mr-auto min-w-0">
+                <span className="block break-words text-white">{p.numero ? `N° ${p.numero}` : (p.nombre_archivo?.split("/").pop() ?? `#${p.id}`)}</span>
+                <span className="font-mono text-xs secundario">
+                  {[p.fecha, (p.tipo === "proveedor" ? p.proveedor_nombre : p.cliente) ?? null, `${p.presupuesto_items[0]?.count ?? 0} renglones`].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              {p.estado === "listo" ? (
+                <TipoChip tipo={p.tipo} />
+              ) : (
+                <span className={`chip ${p.estado === "error" ? "border-red-400/40 text-red-300" : "border-amber-400/40 text-amber-300"}`}>{p.estado === "error" ? "error" : "sin leer"}</span>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
