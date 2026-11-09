@@ -11,6 +11,7 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 - **Marcas equivalentes**: CAT y Caterpillar, GE y General Electric, Wärtsilä y Wartsila, etc. se tratan como la misma marca (lista en `src/lib/marcas.ts`).
 - **Fotos de referencia del PN**: en los resultados se agregan fotos del repuesto (desde el celular se puede sacar la foto en el momento). Quedan guardadas por PN y aparecen cada vez que se lo busca.
 - **Catálogos de fábrica**: se cargan desde la app subiendo el PDF del manual; la IA lee cada página y arma la lista de PN con su descripción y página. El primero es el EMD 645: los 6.781 PN del catálogo de repuestos 302 (motores de 8, 12, 16 y 20 cilindros) con su descripción, lista (P.L.) y página. Se busca por PN o por descripción en inglés, y cada resultado abre la página del manual. Al buscar un PN también aparece si figura en el catálogo. Las descripciones salen de un escaneo con reconocimiento de texto y pueden tener errores de tipeo.
+- **Presupuestos históricos**: se suben presupuestos viejos (PDF, fotos, Excel o CSV), los nuestros a clientes y los que nos mandaron proveedores o talleres. La IA reconoce de quién es, la fecha, el cliente o proveedor, y cada renglón con su PN, marca, cantidad y precio; los renglones de servicios pasan también al módulo de Servicios. En Presupuestos se busca por PN, descripción, motor, cliente o proveedor y aparece el precio de referencia con su fecha, pensado para consultarlo desde el celular. Al buscar un PN también aparece lo que ya se presupuestó.
 - **Descargar Excel**: una fila por proveedor, con links de WhatsApp, llamada y mail, y una columna de estado para seguir la consulta.
 - **Historial**: todas las búsquedas con su estado (abierta, cotizada, comprada, perdida).
 - **Proveedores**: ficha con contactos y todos los precios registrados.
@@ -31,6 +32,8 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 6. **Fotos de referencia**: ejecutar `supabase/migrations/0003_imagenes_pn.sql` en el SQL Editor (crea el espacio privado `imagenes-pn` en Storage).
 7. **Catálogo EMD 645**: ejecutar `supabase/migrations/0004_catalogo.sql` y después los archivos con los PN del catálogo (se generan aparte con el PDF, no están en el repositorio). Subir el PDF en Storage > `catalogos` con el nombre `emd-645-catalogo-302.pdf`.
 8. **Cargar más catálogos desde la app**: ejecutar `supabase/migrations/0005_catalogos.sql`. Después, en Catálogos > Cargar catálogo se elige el PDF; la app lo guarda, lee cada página con IA (usa la misma `ANTHROPIC_API_KEY`) y agrega sus PN.
+
+9. **Presupuestos históricos**: ejecutar `supabase/migrations/0007_presupuestos.sql` (crea las tablas y el espacio privado `presupuestos` en Storage). Usa la misma `ANTHROPIC_API_KEY`. Para que los servicios se copien al módulo de Servicios, ejecutar también su migración (`0008_servicios.sql`).
 
 ## Desarrollo
 
