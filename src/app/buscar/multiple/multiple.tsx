@@ -89,7 +89,7 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
     <div className="space-y-4">
       <form onSubmit={buscar} className="tarjeta space-y-5 p-5 sm:p-6">
         <div>
-          <Link href="/" className="enlace text-sm">
+          <Link href="/buscar" className="enlace text-sm">
             ← Búsqueda de un PN
           </Link>
           <h1 className="titulo mt-2 text-2xl">Búsqueda múltiple</h1>

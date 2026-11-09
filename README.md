@@ -6,6 +6,12 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 
 ## Qué hace
 
+La app está organizada en **módulos**. Al entrar, el inicio muestra los módulos como tarjetas, con sus atajos más usados, un cuadro "¿Qué necesitás hacer?" que lleva directo al lugar indicado (si se escribe un PN, lo busca) y un botón para seguir en el último módulo usado. Dentro de un módulo, el menú de arriba muestra solo sus secciones y un botón para volver a los módulos. Los módulos se definen en `src/lib/modulos.ts`: para sumar uno nuevo alcanza con agregarlo ahí.
+
+- **Repuestos**: buscador por PN, búsqueda múltiple, historial, lista de PN, catálogos de fábrica y carga de precios (todo lo que sigue).
+- **Proveedores**: fichas con contactos y todos los precios registrados, y alta de proveedores.
+- **Stock propio, Presupuestos, Servicios y Clientes**: aparecen como "Próximamente" hasta que estén listos.
+
 - **Buscar**: PN + marca + cantidad. Ordena primero quien ya cotizó ese PN (con el último precio y la fecha), después a quien ya se le consultó y por último quien maneja la marca. Muestra la hora local del proveedor y si está en horario comercial.
 - **Búsqueda con IA**: si el PN no está registrado en la base, la IA busca en la web proveedores alternativos (con el PN exacto, distribuidores de la marca, usados o reacondicionados) y muestra sus contactos. Con un botón se agregan a la base. Si el PN ya está registrado, la búsqueda con IA queda disponible con un botón. Los resultados se guardan 30 días para no repetir la consulta.
 - **Marcas equivalentes**: CAT y Caterpillar, GE y General Electric, Wärtsilä y Wartsila, etc. se tratan como la misma marca (lista en `src/lib/marcas.ts`).
