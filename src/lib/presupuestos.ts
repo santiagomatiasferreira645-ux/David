@@ -98,15 +98,6 @@ export function esArchivoOculto(nombre: string): boolean {
   return !base || base.startsWith(".") || base.startsWith("~$") || /^(thumbs\.db|desktop\.ini)$/i.test(base);
 }
 
-// Cliente según la carpeta: "Presupuestos/Naviera Sur/2023/oferta.pdf" -> "Naviera Sur".
-// Si se eligió directamente la carpeta del cliente ("Naviera Sur/oferta.pdf"), es esa.
-export function carpetaDe(ruta: string | null): string | null {
-  const partes = (ruta ?? "").split("/").map((p) => p.trim()).filter(Boolean);
-  if (partes.length >= 3) return partes[1];
-  if (partes.length === 2) return partes[0];
-  return null;
-}
-
 // "Presupuesto Nº 123 (final).pdf" -> "1731160000000-presupuesto-n-123-final.pdf"
 export function rutaArchivo(ruta: string, ahora = Date.now()): string {
   const nombre = ruta.split("/").pop() ?? ruta;

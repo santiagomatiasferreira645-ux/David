@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { archivoAceptado, carpetaDe, esArchivoOculto, EXTENSIONES, MAX_BYTES, rutaArchivo } from "@/lib/presupuestos";
+import { archivoAceptado, esArchivoOculto, EXTENSIONES, MAX_BYTES, rutaArchivo } from "@/lib/presupuestos";
 import { clienteNavegador } from "@/lib/supabase/navegador";
 
 type Fila = {
   clave: string;
   archivo: File;
-  ruta: string; // con la carpeta si se eligió una carpeta entera: "Naviera Sur/2023/oferta.pdf"
-  carpeta: string | null;
+  ruta: string; // con la carpeta si se eligió una carpeta entera: "COMERCIAL/Naviera Sur/oferta.pdf"
   estado: "pendiente" | "subiendo" | "leyendo" | "listo" | "error";
   mensaje?: string;
   id?: number;
@@ -51,7 +50,7 @@ export default function CargarPresupuestos() {
         saltados++;
         return;
       }
-      const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta, carpeta: carpetaDe(ruta) };
+      const base = { clave: `${Date.now()}-${i}-${ruta}`, archivo, ruta };
       if (filas.some((f) => f.ruta === ruta && f.archivo.size === archivo.size)) return;
       if (!archivoAceptado(archivo.name)) nuevas.push({ ...base, estado: "error", mensaje: "Formato no admitido. Usá PDF, foto, Excel (.xlsx) o CSV. Un Word se puede guardar como PDF." });
       else if (archivo.size > MAX_BYTES) nuevas.push({ ...base, estado: "error", mensaje: "Pesa más de 15 MB." });
@@ -113,7 +112,7 @@ export default function CargarPresupuestos() {
           <p className="subtitulo text-amarillo">Presupuestos históricos</p>
           <h1 className="titulo mt-1">Cargar presupuestos</h1>
           <p className="mt-1 text-sm secundario">
-            Elegí uno o varios presupuestos, o una carpeta entera: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Si están ordenados en carpetas por cliente, elegí la carpeta de arriba de todo: el nombre de cada subcarpeta se toma como cliente. Lo que ya estaba cargado no se repite. Cada archivo tarda entre 10 y 40 segundos.
+            Elegí uno o varios presupuestos, o una carpeta entera: los nuestros a clientes y los que nos mandaron proveedores o talleres. Sirven PDF, fotos, Excel (.xlsx) y CSV. La IA reconoce de quién es, la fecha, y separa los repuestos (con PN y precio) de los servicios, que pasan al módulo de Servicios. Con una carpeta entran todos los archivos de sus subcarpetas. Lo que ya estaba cargado no se repite. Cada archivo tarda entre 10 y 40 segundos.
           </p>
         </div>
         <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-acento/50 p-6 text-center ${ocupado ? "pointer-events-none opacity-50" : "hover:bg-acento/5"}`}>
@@ -173,8 +172,8 @@ export default function CargarPresupuestos() {
             {filas.map((f) => (
               <li key={f.clave} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
                 <span className="mr-auto min-w-0 break-all text-white">
-                  {f.carpeta && <span className="chip mr-2 border-amarillo/40 text-amarillo">{f.carpeta}</span>}
                   {f.archivo.name}
+                  {f.ruta.includes("/") && <span className="block text-xs secundario">{f.ruta.split("/").slice(0, -1).join(" / ")}</span>}
                 </span>
                 <EstadoFila fila={f} />
                 {f.mensaje && <p className={`w-full text-xs ${f.estado === "error" ? "text-red-400" : "secundario"}`}>{f.mensaje}</p>}
