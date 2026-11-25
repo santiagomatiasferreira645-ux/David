@@ -1,6 +1,7 @@
 import "server-only";
 import { linkPagina } from "./catalogo";
 import { normalizarPn } from "./pn";
+import { resumirStock, type ArticuloResumen, type StockPn } from "./stock";
 import { clienteServidor } from "./supabase/servidor";
 
 export const MAX_PN = 200;
@@ -15,6 +16,7 @@ export type ResumenPn = {
   proveedores: number;
   conPrecio: number;
   ultimoPrecio: PrecioPn | null;
+  stock: StockPn | null;
 };
 
 // Resumen de muchos PN con pocas consultas: catálogo de fábrica, proveedores que lo cotizaron o
@@ -25,7 +27,7 @@ export async function resumirPn(pns: string[]): Promise<ResumenPn[]> {
   const claves = Array.from(new Set(pns.map(normalizarPn).filter(Boolean)));
   if (!claves.length) return [];
 
-  const [cat, cot, cons] = await Promise.all([
+  const [cat, cot, cons, stk] = await Promise.all([
     supabase.from("catalogo_pn").select("catalogo, archivo, pn, pn_normalizado, descripcion, pagina").in("pn_normalizado", claves).order("pagina").limit(5000),
     supabase
       .from("cotizaciones")
@@ -34,10 +36,17 @@ export async function resumirPn(pns: string[]): Promise<ResumenPn[]> {
       .order("fecha", { ascending: false })
       .limit(5000),
     supabase.from("consultas_pn").select("proveedor_id, pn_normalizado").in("pn_normalizado", claves).limit(5000),
+    supabase
+      .from("stock_articulos")
+      .select("id, pn, pn_normalizado, marca, condicion, precio_venta, moneda, stock_existencias (cantidad)")
+      .in("pn_normalizado", claves)
+      .limit(5000),
   ]);
   if (cat.error) throw cat.error;
   if (cot.error) throw cot.error;
   if (cons.error) throw cons.error;
+  // Si el stock propio no está creado en la base, la búsqueda sigue sin esa columna.
+  const stock = (stk.error ? [] : stk.data ?? []) as unknown as ArticuloResumen[];
 
   const conPrecioIds = Array.from(new Set((cot.data ?? []).filter((c) => c.precio_unitario != null && c.proveedor_id).map((c) => c.proveedor_id!)));
   const nombres = new Map<string, string>();
@@ -68,6 +77,7 @@ export async function resumirPn(pns: string[]): Promise<ResumenPn[]> {
       ultimoPrecio: ultima
         ? { precio: ultima.precio_unitario!, moneda: ultima.moneda, proveedor: nombres.get(ultima.proveedor_id ?? "") ?? "Proveedor", fecha: ultima.fecha }
         : null,
+      stock: resumirStock(stock.filter((a) => a.pn_normalizado === clave)),
     };
   });
 }
