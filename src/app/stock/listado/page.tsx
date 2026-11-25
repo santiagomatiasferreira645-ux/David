@@ -1,6 +1,7 @@
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { listarDepositos } from "@/lib/stock-datos";
 import { Encabezado } from "../componentes";
+import { EnviarListado } from "./enviar";
 
 // Opciones del listado en PDF para clientes. El PDF nunca muestra costos ni a quién se le compró.
 export default async function Listado({ searchParams }: { searchParams: { deposito?: string } }) {
@@ -55,9 +56,10 @@ export default async function Listado({ searchParams }: { searchParams: { deposi
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
           <path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16" />
         </svg>
-        Generar PDF
+        Ver PDF
       </button>
-      <p className="text-xs secundario">Se abre en otra pestaña; desde ahí se descarga o se comparte por WhatsApp o mail.</p>
+      <p className="text-xs secundario">Se abre en otra pestaña para revisarlo o descargarlo.</p>
+      <EnviarListado />
     </form>
   );
 }

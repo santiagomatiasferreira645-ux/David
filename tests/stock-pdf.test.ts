@@ -50,3 +50,14 @@ describe("generarListadoPdf", () => {
     expect(doc.getPageCount()).toBe(1);
   });
 });
+
+describe("telefonoWhatsapp", () => {
+  it("deja solo los dígitos con código de país", async () => {
+    const { telefonoWhatsapp } = await import("@/app/stock/listado/enviar");
+    expect(telefonoWhatsapp("+54 9 11 1234-5678")).toBe("5491112345678");
+    expect(telefonoWhatsapp("0059521123456")).toBe("59521123456");
+    expect(telefonoWhatsapp("5491112345678")).toBe("5491112345678");
+    expect(telefonoWhatsapp("11 1234 5678")).toBe("");
+    expect(telefonoWhatsapp("")).toBe("");
+  });
+});
