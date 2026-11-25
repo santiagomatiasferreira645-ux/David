@@ -43,7 +43,14 @@ export default async function Depositos({ searchParams }: { searchParams: { erro
               </div>
               {(d.ubicacion || !d.activo) && <p className="text-xs secundario">{[d.ubicacion, !d.activo && "inactivo"].filter(Boolean).join(" · ")}</p>}
               <details>
-                <summary className="cursor-pointer text-sm text-acento">Editar</summary>
+                <summary className="flex cursor-pointer list-none flex-wrap gap-x-4 text-sm text-acento [&::-webkit-details-marker]:hidden">
+                  <span>Editar</span>
+                  {r && (
+                    <a href={`/stock/listado?deposito=${d.id}`} className="hover:underline">
+                      Listado PDF
+                    </a>
+                  )}
+                </summary>
                 <form action={guardarDeposito} className="mt-3 space-y-3">
                   <input type="hidden" name="id" value={d.id} />
                   <input name="nombre" defaultValue={d.nombre} required className="campo" aria-label="Nombre" />

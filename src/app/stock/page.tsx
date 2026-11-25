@@ -36,6 +36,9 @@ export default async function Stock({ searchParams }: { searchParams: Params }) 
             <Link href="/stock/depositos" className="boton-secundario">
               Depósitos
             </Link>
+            <Link href={`/stock/listado${depositoId ? `?deposito=${depositoId}` : ""}`} className="boton-secundario">
+              Listado PDF
+            </Link>
           </div>
         </div>
         <form className="flex flex-wrap gap-2">
