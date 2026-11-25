@@ -62,15 +62,19 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
   const filas = items.map((it) => ({ it, r: resultados?.get(normalizarPn(it.pn)) }));
   const enCatalogo = filas.filter((f) => f.r?.hojas.length).length;
   const conProveedor = filas.filter((f) => f.r?.proveedores).length;
-  const sinNada = filas.filter((f) => f.r && !f.r.hojas.length && !f.r.proveedores).length;
+  const enStock = filas.filter((f) => f.r?.stock).length;
+  const sinNada = filas.filter((f) => f.r && !f.r.hojas.length && !f.r.proveedores && !f.r.stock).length;
 
   async function copiar() {
-    const encabezado = ["PN", "Cantidad", "Descripción", "Catálogo", "Hoja", "Proveedores", "Con precio", "Último precio", "Moneda", "Proveedor del precio"];
+    const encabezado = ["PN", "Cantidad", "Descripción", "En stock", "Precio stock", "Moneda stock", "Catálogo", "Hoja", "Proveedores", "Con precio", "Último precio", "Moneda", "Proveedor del precio"];
     const lineas = filas.map(({ it, r }) =>
       [
         it.pn,
         it.cantidad,
         it.descripcion || r?.descripcionCatalogo || "",
+        r ? r.stock?.cantidad ?? 0 : "",
+        r?.stock?.precio ?? "",
+        r?.stock?.precio != null ? r.stock.moneda ?? "" : "",
         r?.hojas[0]?.catalogo ?? "",
         r?.hojas[0]?.pagina ?? "",
         r?.proveedores ?? "",
@@ -195,6 +199,9 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-sm">
               <span>
+                <span className="text-verde">{enStock}</span> <span className="secundario">en stock propio</span>
+              </span>
+              <span>
                 <span className="text-white">{enCatalogo}</span> <span className="secundario">en catálogos</span>
               </span>
               <span>
@@ -216,6 +223,11 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
                   <span className="font-mono text-sm secundario">x {it.cantidad}</span>
                 </div>
                 {(it.descripcion || r?.descripcionCatalogo) && <p className="text-sm text-slate-200">{it.descripcion || r?.descripcionCatalogo}</p>}
+                {r?.stock && (
+                  <p className="flex flex-wrap items-baseline gap-x-1 text-xs">
+                    <span className="secundario">En stock propio:</span> <EnStock r={r} pedido={it.cantidad} />
+                  </p>
+                )}
                 <Catalogo r={r} />
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="space-y-1">
@@ -236,6 +248,7 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
                   <th>PN</th>
                   <th>Cant.</th>
                   <th>Descripción</th>
+                  <th>En stock</th>
                   <th>Catálogo</th>
                   <th>Proveedores</th>
                   <th>Último precio</th>
@@ -249,6 +262,9 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
                     <td className="font-mono">{it.cantidad}</td>
                     <td className="min-w-[12rem] text-slate-200">
                       {it.descripcion || r?.descripcionCatalogo || <span className="secundario">–</span>}
+                    </td>
+                    <td className="whitespace-nowrap">
+                      <EnStock r={r} pedido={it.cantidad} />
                     </td>
                     <td className="min-w-[10rem]">
                       <Catalogo r={r} />
@@ -275,6 +291,25 @@ export function BusquedaMultiple({ marcas }: { marcas: string[] }) {
         </section>
       )}
     </div>
+  );
+}
+
+// Cuánto hay en stock propio, en verde si alcanza para el pedido y en ámbar si no.
+function EnStock({ r, pedido }: { r?: ResumenPn; pedido: number }) {
+  if (!r?.stock) return <span className="font-mono text-xs secundario">No</span>;
+  const alcanza = r.stock.cantidad >= pedido;
+  return (
+    <Link href={r.stock.link} target="_blank" title={r.stock.detalle} className="inline-block font-mono text-xs hover:underline">
+      <span className={alcanza ? "text-verde" : "text-amber-300"}>
+        {r.stock.cantidad.toLocaleString("es")} u.{!alcanza && " (no alcanza)"}
+      </span>
+      {r.stock.precio != null && (
+        <span className="text-emerald-300">
+          {" "}
+          · {r.stock.precio.toLocaleString("es")} {r.stock.moneda}
+        </span>
+      )}
+    </Link>
   );
 }
 

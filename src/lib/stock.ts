@@ -179,3 +179,35 @@ export function leerStockPegado(texto: string): { filas: FilaImportada[]; error?
   const filas = Array.from(porClave.values());
   return filas.length ? { filas } : { filas, error: "No encontré ningún PN en lo que pegaste." };
 }
+
+// ---- Resumen para la búsqueda múltiple ----
+
+// Lo que tenemos en stock propio de ese PN (sumando marcas y condiciones), con el precio de referencia más alto cargado.
+export type StockPn = { cantidad: number; precio: number | null; moneda: string | null; link: string; detalle: string };
+
+export type ArticuloResumen = {
+  id: number;
+  pn: string;
+  pn_normalizado: string;
+  marca: string | null;
+  condicion: string;
+  precio_venta: number | null;
+  moneda: string;
+  stock_existencias: { cantidad: number }[];
+};
+
+export function resumirStock(articulos: ArticuloResumen[]): StockPn | null {
+  const conCantidad = articulos
+    .map((a) => ({ ...a, total: a.stock_existencias.reduce((n, e) => n + Number(e.cantidad), 0) }))
+    .filter((a) => a.total > 0);
+  if (!conCantidad.length) return null;
+  const conPrecio = conCantidad.filter((a) => a.precio_venta != null).sort((a, b) => b.precio_venta! - a.precio_venta!)[0];
+  return {
+    cantidad: conCantidad.reduce((n, a) => n + a.total, 0),
+    precio: conPrecio?.precio_venta ?? null,
+    moneda: conPrecio?.moneda ?? null,
+    link: conCantidad.length === 1 ? `/stock/${conCantidad[0].id}` : `/stock?q=${encodeURIComponent(conCantidad[0].pn)}`,
+    detalle: conCantidad.map((a) => [a.marca, a.condicion, `${a.total} u.`].filter(Boolean).join(" ")).join(" · "),
+  };
+}
+

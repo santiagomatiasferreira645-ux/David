@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filasDeMovimiento, leerNumero, leerStockPegado } from "@/lib/stock";
+import { filasDeMovimiento, leerNumero, leerStockPegado, resumirStock } from "@/lib/stock";
 
 describe("filasDeMovimiento", () => {
   const base = { articuloId: 7, depositoId: 1 };
@@ -86,5 +86,30 @@ describe("leerStockPegado", () => {
   it("avisa si falta la fila de títulos o la columna del PN", () => {
     expect(leerStockPegado("8455666\t4").error).toBeTruthy();
     expect(leerStockPegado("Cantidad\tMarca\n4\tEMD").error).toMatch(/PN/);
+  });
+});
+
+describe("resumirStock", () => {
+  const art = (id: number, marca: string, condicion: string, precio: number | null, cantidades: number[]) => ({
+    id,
+    pn: "8N-7005",
+    pn_normalizado: "8N7005",
+    marca,
+    condicion,
+    precio_venta: precio,
+    moneda: "USD",
+    stock_existencias: cantidades.map((cantidad) => ({ cantidad })),
+  });
+
+  it("suma los depósitos y las variantes con existencia", () => {
+    const r = resumirStock([art(1, "CAT", "Nuevo original", 100, [2, 3]), art(2, "CAT", "Usado", 40, [1]), art(3, "CAT", "Alternativo", 500, [0])]);
+    expect(r).toMatchObject({ cantidad: 6, precio: 100, moneda: "USD", link: "/stock?q=8N-7005" });
+    expect(r?.detalle).toBe("CAT Nuevo original 5 u. · CAT Usado 1 u.");
+  });
+
+  it("con un solo artículo lleva a su ficha, y sin existencia no hay stock", () => {
+    expect(resumirStock([art(7, "CAT", "Usado", null, [1])])).toMatchObject({ cantidad: 1, precio: null, link: "/stock/7" });
+    expect(resumirStock([art(7, "CAT", "Usado", 10, [0])])).toBeNull();
+    expect(resumirStock([])).toBeNull();
   });
 });
