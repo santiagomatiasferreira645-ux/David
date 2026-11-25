@@ -19,7 +19,8 @@
     "pdfjs-dist": "^3.11.174",
     "react": "^18",
     "react-dom": "^18",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "word-extractor": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "^20",

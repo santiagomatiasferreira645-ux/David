@@ -5,6 +5,8 @@ import { buscar, obtenerBusqueda } from "@/lib/datos";
 import { catalogoDelPn, linkPagina, urlCatalogo, type FilaCatalogo } from "@/lib/catalogo";
 import { imagenesDelPn } from "@/lib/imagenes";
 import { listarDepositos, stockDelPn } from "@/lib/stock-datos";
+import { itemsDelPn } from "@/lib/presupuestos-datos";
+import { TarjetaPrecio } from "../presupuestos/precios";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
@@ -47,10 +49,11 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
   const busqueda = await obtenerBusqueda(Number(searchParams.id));
   if (!busqueda) redirect("/");
   const marca = busqueda.marca ?? "";
-  const [resultados, imagenes, catalogo, stock] = await Promise.all([
+  const [resultados, imagenes, catalogo, presupuestados, stock] = await Promise.all([
     buscar(busqueda.pn, marca),
     imagenesDelPn(busqueda.pn),
     catalogoDelPn(busqueda.pn),
+    itemsDelPn(busqueda.pn),
     stockDelPn(busqueda.pn).catch(() => []),
   ]);
   const depositos = stock.length ? new Map((await listarDepositos()).map((d) => [d.id, d])) : new Map();
@@ -117,6 +120,24 @@ export default async function Buscar({ searchParams }: { searchParams: Params })
               <HojasDelPn pn={busqueda.pn} hojas={hojas} />
             </div>
           )}
+        </section>
+      )}
+
+      {presupuestados.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="subtitulo text-amarillo">En presupuestos anteriores</p>
+            {presupuestados.length > 3 && (
+              <Link href={`/presupuestos?q=${encodeURIComponent(busqueda.pn)}`} className="enlace text-sm">
+                Ver los {presupuestados.length}
+              </Link>
+            )}
+          </div>
+          <ul className="space-y-2">
+            {presupuestados.slice(0, 3).map((i) => (
+              <TarjetaPrecio key={i.id} item={i} />
+            ))}
+          </ul>
         </section>
       )}
 
