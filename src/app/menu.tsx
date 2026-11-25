@@ -9,6 +9,7 @@ const MENU = [
   { href: "/historial", texto: "Historial" },
   { href: "/proveedores", texto: "Proveedores" },
   { href: "/repuestos", texto: "Repuestos" },
+  { href: "/stock", texto: "Stock" },
   { href: "/catalogo", texto: "Catálogos" },
   { href: "/presupuestos", texto: "Presupuestos", corto: "Presup." },
   { href: "/servicios", texto: "Servicios" },
