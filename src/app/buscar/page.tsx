@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { horaLocal, idiomaDe, linkLlamada, linkMail, linkWhatsapp } from "@/lib/contacto";
 import { buscar, obtenerBusqueda } from "@/lib/datos";
-import { catalogoDelPn, linkPagina, urlCatalogo, type FilaCatalogo } from "@/lib/catalogo";
+import { catalogoDelPn, hojasDelPn } from "@/lib/catalogo";
 import { imagenesDelPn } from "@/lib/imagenes";
 import { listarDepositos, stockDelPn } from "@/lib/stock-datos";
 import { itemsDelPn } from "@/lib/presupuestos-datos";
@@ -11,19 +11,11 @@ import { clienteServidor } from "@/lib/supabase/servidor";
 import { Estado, MOTIVO_COLOR, MotivoChip } from "../insignias";
 import { BotonContacto } from "./boton-contacto";
 import { TablaCatalogo } from "../catalogo/tabla";
-import { HojasDelPn, type Hoja } from "../catalogo/hojas-del-pn";
+import { HojasDelPn } from "../catalogo/hojas-del-pn";
 import { CambiarEstado } from "./cambiar-estado";
 import { ImagenesPn } from "./imagenes-pn";
 import { SugerenciasIA } from "./sugerencias-ia";
 import { EnStock } from "../stock/en-stock";
-
-// Una hoja por cada página distinta donde aparece el PN (hasta 6), con el link firmado a su PDF.
-async function hojasDelPn(filas: FilaCatalogo[]): Promise<Hoja[]> {
-  const unicas = filas.filter((f, i) => f.pagina && filas.findIndex((g) => g.archivo === f.archivo && g.pagina === f.pagina) === i).slice(0, 6);
-  const archivos = Array.from(new Set(unicas.map((f) => f.archivo)));
-  const urls = new Map(await Promise.all(archivos.map(async (a) => [a, await urlCatalogo(a)] as const)));
-  return unicas.map((f) => ({ id: f.id, catalogo: f.catalogo, pagina: f.pagina!, url: urls.get(f.archivo) ?? null, link: linkPagina(f) }));
-}
 
 type Params = { pn?: string; marca?: string; cantidad?: string; cliente?: string; id?: string };
 

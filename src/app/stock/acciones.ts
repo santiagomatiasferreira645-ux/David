@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { BUCKET_IMAGENES, carpetaStock } from "@/lib/imagenes";
 import { normalizarPn } from "@/lib/pn";
 import { CONDICIONES_STOCK, filasDeMovimiento, leerStockPegado, marcaStock, TIPOS_MOVIMIENTO, type TipoMovimiento } from "@/lib/stock";
 import { clienteServidor } from "@/lib/supabase/servidor";
@@ -36,6 +37,7 @@ export async function crearArticulo(form: FormData) {
     costo_unitario: num("costo"),
     precio_venta: num("precio"),
     moneda: txt("moneda") ?? "USD",
+    proveedor_id: txt("proveedor"),
     notas: txt("notas"),
   };
   const { data, error } = await supabase.from("stock_articulos").insert(datos).select("id").single();
@@ -78,6 +80,7 @@ export async function editarArticulo(form: FormData) {
       costo_unitario: num("costo"),
       precio_venta: num("precio"),
       moneda: txt("moneda") ?? "USD",
+      proveedor_id: txt("proveedor"),
       notas: txt("notas"),
       actualizado_en: new Date().toISOString(),
     })
@@ -90,8 +93,14 @@ export async function editarArticulo(form: FormData) {
 
 export async function borrarArticulo(form: FormData) {
   const { num } = lector(form);
-  const { error } = await clienteServidor().from("stock_articulos").delete().eq("id", num("id")!);
+  const id = num("id")!;
+  const supabase = clienteServidor();
+  const { error } = await supabase.from("stock_articulos").delete().eq("id", id);
   if (error) throw error;
+  // Las fotos propias del artículo se borran con él.
+  const fotos = supabase.storage.from(BUCKET_IMAGENES);
+  const { data: archivos } = await fotos.list(carpetaStock(id));
+  if (archivos?.length) await fotos.remove(archivos.map((a) => `${carpetaStock(id)}/${a.name}`));
   revalidatePath("/stock");
   redirect("/stock");
 }

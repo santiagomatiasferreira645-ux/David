@@ -57,7 +57,7 @@ export function MarcasSugeridas() {
 }
 
 // Los campos del artículo, iguales en el alta y en la edición.
-export function CamposArticulo({ a }: { a?: Partial<ArticuloStock> }) {
+export function CamposArticulo({ a, proveedores }: { a?: Partial<ArticuloStock>; proveedores: { id: string; empresa: string; pais: string | null }[] }) {
   return (
     <>
       <Campo nombre="pn" texto="PN" valor={a?.pn} requerido pn />
@@ -70,6 +70,13 @@ export function CamposArticulo({ a }: { a?: Partial<ArticuloStock> }) {
       <Campo nombre="precio" texto="Precio de referencia (venta)" tipo="number" valor={a?.precio_venta} />
       <Campo nombre="costo" texto="Costo unitario" tipo="number" valor={a?.costo_unitario} />
       <Lista nombre="moneda" texto="Moneda" opciones={MONEDAS_STOCK} valor={a?.moneda} />
+      <Lista
+        nombre="proveedor"
+        texto="Comprado a (opcional)"
+        opciones={proveedores.map((p) => ({ valor: p.id, texto: p.pais ? `${p.empresa} (${p.pais})` : p.empresa }))}
+        valor={a?.proveedor_id}
+        vacio="—"
+      />
       <div className="sm:col-span-2">
         <label className="etiqueta" htmlFor="notas">Notas</label>
         <textarea id="notas" name="notas" rows={2} defaultValue={a?.notas ?? undefined} className="campo" />

@@ -1,5 +1,6 @@
 -- Stock propio: artículos multimarca por PN, guardados en uno o varios depósitos.
--- Se ejecuta una vez en Supabase: SQL Editor > New query > pegar este archivo > Run.
+-- Se ejecuta una vez en Supabase: SQL Editor > New query > pegar este archivo > Run (se puede volver a correr).
+-- Las fotos de cada artículo van al espacio "imagenes-pn" de Storage (0003_imagenes_pn.sql), carpeta stock/<id>.
 --
 -- La cantidad de cada depósito no se escribe a mano: sale de los movimientos (ingreso, egreso,
 -- transferencia o ajuste). Cada movimiento suma o resta en stock_existencias con un trigger,
@@ -26,10 +27,14 @@ create table if not exists stock_articulos (
   costo_unitario   numeric,                        -- lo que nos costó
   precio_venta     numeric,                        -- precio de referencia para el cliente
   moneda           text not null default 'USD',
+  proveedor_id     text references proveedores (id) on delete set null,   -- a quién se lo compramos
   notas            text,
   creado_en        timestamptz not null default now(),
   actualizado_en   timestamptz not null default now()
 );
+
+-- Si la tabla ya se había creado con la primera versión de este archivo.
+alter table stock_articulos add column if not exists proveedor_id text references proveedores (id) on delete set null;
 
 -- Un mismo PN puede estar como nuevo y como usado, o de dos marcas; pero no repetido igual.
 create unique index if not exists stock_articulos_unico_idx

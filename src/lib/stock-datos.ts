@@ -65,3 +65,21 @@ export async function movimientosDe(articuloId: number): Promise<Movimiento[]> {
     .limit(200);
   return (data ?? []) as Movimiento[];
 }
+
+export type ProveedorCorto = { id: string; empresa: string; pais: string | null };
+
+export async function proveedoresParaElegir(): Promise<ProveedorCorto[]> {
+  const { data } = await clienteServidor().from("proveedores").select("id, empresa, pais").order("empresa").limit(2000);
+  return (data ?? []) as ProveedorCorto[];
+}
+
+// Cuáles de estos PN figuran en algún catálogo de fábrica (para marcarlos en la lista).
+export async function pnEnCatalogos(pns: string[]): Promise<Set<string>> {
+  const unicos = Array.from(new Set(pns.filter(Boolean)));
+  const encontrados = new Set<string>();
+  for (let i = 0; i < unicos.length; i += 150) {
+    const { data } = await clienteServidor().from("catalogo_pn").select("pn_normalizado").in("pn_normalizado", unicos.slice(i, i + 150)).limit(5000);
+    (data ?? []).forEach((f) => encontrados.add(f.pn_normalizado));
+  }
+  return encontrados;
+}

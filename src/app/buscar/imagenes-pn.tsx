@@ -20,7 +20,8 @@ async function achicar(archivo: File): Promise<Blob> {
   return new Promise((ok, mal) => lienzo.toBlob((b) => (b ? ok(b) : mal(new Error("No se pudo leer la imagen."))), "image/jpeg", 0.85));
 }
 
-export function ImagenesPn({ pn, imagenes }: { pn: string; imagenes: ImagenPn[] }) {
+// Con `carpeta` las fotos van a otra carpeta del mismo espacio (ej. las de un artículo del stock).
+export function ImagenesPn({ pn, imagenes, carpeta }: { pn: string; imagenes: ImagenPn[]; carpeta?: string }) {
   const router = useRouter();
   const entrada = useRef<HTMLInputElement>(null);
   const [subiendo, setSubiendo] = useState(false);
@@ -36,7 +37,7 @@ export function ImagenesPn({ pn, imagenes }: { pn: string; imagenes: ImagenPn[] 
     for (const archivo of archivos) {
       try {
         const blob = await achicar(archivo);
-        const ruta = `${normalizarPn(pn)}/${Date.now()}.jpg`;
+        const ruta = `${carpeta ?? normalizarPn(pn)}/${Date.now()}.jpg`;
         const { error } = await storage.upload(ruta, blob, { contentType: "image/jpeg" });
         if (error) throw error;
       } catch (err) {

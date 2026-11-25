@@ -7,7 +7,13 @@ export type ImagenPn = { ruta: string; url: string };
 
 // Fotos de referencia del PN, con links firmados por una hora (el bucket es privado).
 export async function imagenesDelPn(pn: string): Promise<ImagenPn[]> {
-  const carpeta = normalizarPn(pn);
+  return imagenesDeCarpeta(normalizarPn(pn));
+}
+
+// Fotos propias de un artículo del stock (el estado real de esa pieza), en la carpeta stock/<id>.
+export const carpetaStock = (articuloId: number) => `stock/${articuloId}`;
+
+export async function imagenesDeCarpeta(carpeta: string): Promise<ImagenPn[]> {
   if (!carpeta) return [];
   const storage = clienteServidor().storage.from(BUCKET_IMAGENES);
   const { data: archivos } = await storage.list(carpeta, { sortBy: { column: "created_at", order: "desc" } });

@@ -28,13 +28,14 @@ export type ArticuloStock = {
   costo_unitario: number | null;
   precio_venta: number | null;
   moneda: string;
+  proveedor_id: string | null;
   notas: string | null;
   actualizado_en: string;
   stock_existencias: Existencia[];
 };
 
 export const COLUMNAS_ARTICULO =
-  "id, pn, pn_normalizado, marca, descripcion, modelo_motor, condicion, costo_unitario, precio_venta, moneda, notas, actualizado_en, stock_existencias (deposito_id, cantidad, ubicacion)";
+  "id, pn, pn_normalizado, marca, descripcion, modelo_motor, condicion, costo_unitario, precio_venta, moneda, proveedor_id, notas, actualizado_en, stock_existencias (deposito_id, cantidad, ubicacion)";
 
 export const totalDe = (a: Pick<ArticuloStock, "stock_existencias">) =>
   a.stock_existencias.reduce((s, e) => s + Number(e.cantidad), 0);

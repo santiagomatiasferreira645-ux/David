@@ -1,18 +1,33 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listarDepositos, movimientosDe, obtenerArticulo } from "@/lib/stock-datos";
+import { catalogoDelPn, hojasDelPn } from "@/lib/catalogo";
+import { carpetaStock, imagenesDeCarpeta, imagenesDelPn } from "@/lib/imagenes";
+import { listarDepositos, movimientosDe, obtenerArticulo, proveedoresParaElegir } from "@/lib/stock-datos";
 import { TEXTO_MOVIMIENTO, formatoCantidad, formatoPrecio, totalDe, type TipoMovimiento } from "@/lib/stock";
 import { borrarArticulo, cambiarUbicacion, editarArticulo, registrarMovimiento } from "../acciones";
 import { AvisoError, CamposArticulo, Encabezado } from "../componentes";
 import { FormMovimiento } from "./movimiento";
+import { ImagenesPn } from "../../buscar/imagenes-pn";
+import { TablaCatalogo } from "../../catalogo/tabla";
+import { HojasDelPn } from "../../catalogo/hojas-del-pn";
 
 type Params = { error?: string; editar?: string };
 
 // Ficha del artículo: cuánto hay en cada depósito, precio de referencia, movimientos y edición.
 export default async function Articulo({ params, searchParams }: { params: { id: string }; searchParams: Params }) {
   const id = Number(params.id);
-  const [articulo, depositos, movimientos] = await Promise.all([obtenerArticulo(id), listarDepositos(), movimientosDe(id)]);
+  const [articulo, depositos, movimientos, proveedores, fotos] = await Promise.all([
+    obtenerArticulo(id),
+    listarDepositos(),
+    movimientosDe(id),
+    proveedoresParaElegir(),
+    imagenesDeCarpeta(carpetaStock(id)),
+  ]);
   if (!articulo) notFound();
+  // Las fotos de referencia del PN (las que se cargan desde la búsqueda) y el manual de fábrica, si el PN figura.
+  const [fotosPn, catalogo] = await Promise.all([imagenesDelPn(articulo.pn), catalogoDelPn(articulo.pn)]);
+  const hojas = await hojasDelPn(catalogo);
+  const proveedor = proveedores.find((p) => p.id === articulo.proveedor_id);
 
   const porId = new Map(depositos.map((d) => [d.id, d]));
   const existencias = Object.fromEntries(articulo.stock_existencias.map((e) => [e.deposito_id, Number(e.cantidad)]));
@@ -33,6 +48,14 @@ export default async function Articulo({ params, searchParams }: { params: { id:
           </h1>
           {articulo.descripcion && <p className="mt-1 text-slate-300">{articulo.descripcion}</p>}
           {articulo.modelo_motor && <p className="mt-0.5 text-sm secundario">Motor / reductor: {articulo.modelo_motor}</p>}
+          {proveedor && (
+            <p className="mt-0.5 text-sm secundario">
+              Comprado a{" "}
+              <Link href={`/proveedores/${proveedor.id}`} className="enlace">
+                {proveedor.empresa}
+              </Link>
+            </p>
+          )}
         </Encabezado>
         <div className="flex flex-wrap gap-6 font-mono">
           <div>
@@ -51,12 +74,19 @@ export default async function Articulo({ params, searchParams }: { params: { id:
           )}
         </div>
         {articulo.notas && <p className="whitespace-pre-line text-sm text-slate-300">{articulo.notas}</p>}
+        <div>
+          <p className="subtitulo mb-2">Fotos de este artículo</p>
+          <ImagenesPn pn={articulo.pn} imagenes={fotos} carpeta={carpetaStock(articulo.id)} />
+        </div>
+        {fotosPn.length > 0 && (
+          <div>
+            <p className="subtitulo mb-2">Fotos de referencia del PN</p>
+            <ImagenesPn pn={articulo.pn} imagenes={fotosPn} />
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <Link href={buscarPn} className="boton-secundario">
             Buscar proveedores de este PN
-          </Link>
-          <Link href={`/catalogo?q=${encodeURIComponent(articulo.pn)}`} className="boton-secundario">
-            Ver en catálogos
           </Link>
         </div>
       </section>
@@ -88,6 +118,35 @@ export default async function Articulo({ params, searchParams }: { params: { id:
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section className="tarjeta">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="subtitulo text-amarillo">En el manual de fábrica</p>
+          {catalogo.length > 3 && (
+            <Link href={`/catalogo?q=${encodeURIComponent(articulo.pn)}`} className="enlace text-sm">
+              Ver las {catalogo.length} apariciones
+            </Link>
+          )}
+        </div>
+        {catalogo.length === 0 ? (
+          <p className="mt-1 text-sm secundario">
+            Este PN no figura en los catálogos cargados.{" "}
+            <Link href="/catalogo/cargar" className="enlace">
+              Cargar un catálogo
+            </Link>
+          </p>
+        ) : (
+          <>
+            <TablaCatalogo filas={catalogo.slice(0, 3)} />
+            {hojas.length > 0 && (
+              <div className="mt-3 border-t border-borde/60 pt-3">
+                <p className="subtitulo mb-2">Hoja del catálogo</p>
+                <HojasDelPn pn={articulo.pn} hojas={hojas} />
+              </div>
+            )}
+          </>
         )}
       </section>
 
@@ -129,7 +188,7 @@ export default async function Articulo({ params, searchParams }: { params: { id:
         <form action={editarArticulo} className="mt-4 space-y-4">
           <input type="hidden" name="id" value={articulo.id} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <CamposArticulo a={articulo} />
+            <CamposArticulo a={articulo} proveedores={proveedores} />
           </div>
           <button className="boton">Guardar cambios</button>
         </form>

@@ -1,6 +1,7 @@
 import "server-only";
 import { normalizarPn } from "./pn";
 import { clienteServidor } from "./supabase/servidor";
+import type { Hoja } from "@/app/catalogo/hojas-del-pn";
 
 export const BUCKET_CATALOGOS = "catalogos";
 
@@ -116,3 +117,12 @@ export async function urlCatalogo(archivo: string): Promise<string | null> {
 export function linkPagina(f: Pick<FilaCatalogo, "archivo" | "pagina" | "pn">): string {
   return `/catalogo/ver?archivo=${encodeURIComponent(f.archivo)}&pagina=${f.pagina ?? 1}&pn=${encodeURIComponent(f.pn)}`;
 }
+
+// Una hoja por cada página distinta donde aparece el PN (hasta 6), con el link firmado a su PDF.
+export async function hojasDelPn(filas: FilaCatalogo[]): Promise<Hoja[]> {
+  const unicas = filas.filter((f, i) => f.pagina && filas.findIndex((g) => g.archivo === f.archivo && g.pagina === f.pagina) === i).slice(0, 6);
+  const archivos = Array.from(new Set(unicas.map((f) => f.archivo)));
+  const urls = new Map(await Promise.all(archivos.map(async (a) => [a, await urlCatalogo(a)] as const)));
+  return unicas.map((f) => ({ id: f.id, catalogo: f.catalogo, pagina: f.pagina!, url: urls.get(f.archivo) ?? null, link: linkPagina(f) }));
+}
+

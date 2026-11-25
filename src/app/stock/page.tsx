@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buscarStock, listarDepositos } from "@/lib/stock-datos";
+import { buscarStock, listarDepositos, pnEnCatalogos } from "@/lib/stock-datos";
 import { formatoCantidad, formatoPrecio, totalDe } from "@/lib/stock";
 import { AvisoError, ChipsDepositos } from "./componentes";
 
@@ -11,6 +11,8 @@ export default async function Stock({ searchParams }: { searchParams: Params }) 
   const depositoId = Number(searchParams.deposito) || undefined;
   const [articulos, depositos] = await Promise.all([buscarStock(q, depositoId), listarDepositos()]);
   const porId = new Map(depositos.map((d) => [d.id, d]));
+  const enManual = await pnEnCatalogos(articulos.map((a) => a.pn_normalizado)).catch(() => new Set<string>());
+  const manual = (pn: string) => (enManual.has(pn) ? <span className="chip border-amarillo/40 text-amarillo" title="Figura en un catálogo de fábrica">Manual</span> : null);
   const conStock = articulos.filter((a) => totalDe(a) > 0).length;
 
   return (
@@ -62,7 +64,10 @@ export default async function Stock({ searchParams }: { searchParams: Params }) 
           <li key={a.id}>
             <Link href={`/stock/${a.id}`} className="tarjeta block space-y-1.5 p-4 transition hover:border-acento/40">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="pn text-lg text-acento">{a.pn}</span>
+                <span className="flex items-center gap-2">
+                  <span className="pn text-lg text-acento">{a.pn}</span>
+                  {manual(a.pn_normalizado)}
+                </span>
                 <span className="font-mono text-lg font-semibold text-white">{formatoCantidad(totalDe(a))}</span>
               </div>
               <p className="text-sm">
@@ -96,7 +101,8 @@ export default async function Stock({ searchParams }: { searchParams: Params }) 
                 <td className="whitespace-nowrap">
                   <Link href={`/stock/${a.id}`} className="pn enlace">
                     {a.pn}
-                  </Link>
+                  </Link>{" "}
+                  {manual(a.pn_normalizado)}
                 </td>
                 <td>{a.marca}</td>
                 <td className="min-w-48">{a.descripcion}</td>
