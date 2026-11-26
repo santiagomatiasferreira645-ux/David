@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { Menu } from "./menu";
+import { RegistrarSW } from "./registrar-sw";
 import "./globals.css";
 
 const sans = Inter({ subsets: ["latin"], variable: "--fuente-sans" });
@@ -13,9 +14,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/icono.svg", type: "image/svg+xml" },
-      { url: "/icono-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icono-v2-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+    apple: { url: "/apple-touch-icon-v2.png", sizes: "180x180" },
   },
   description: "Búsqueda de repuestos navales por PN y marca, con historial de proveedores y cotizaciones.",
 };
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${sans.variable} ${mono.variable}`}>
       <body>
+        <RegistrarSW />
         <header className="sticky top-0 z-10 bg-fondo/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
             <Link href="/" className="order-1 mr-auto flex items-center gap-2">
