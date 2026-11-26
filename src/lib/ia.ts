@@ -74,7 +74,9 @@ export async function buscarProveedoresIA(args: {
   cantidad: number | null;
   conocidos: string[];
 }): Promise<SugerenciaIA[]> {
-  const client = new Anthropic();
+  // Vercel corta la función a los 60 s: se deja margen para devolver un mensaje claro en vez de un corte mudo.
+  const limite = Date.now() + 52_000;
+  const client = new Anthropic({ maxRetries: 1 });
   const pedido =
     `Repuesto: PN ${args.pn}${args.marca ? `, marca ${args.marca}` : ""}, cantidad ${args.cantidad ?? 1}.\n` +
     `Ya están en nuestra base (no repetir): ${args.conocidos.length ? args.conocidos.join("; ") : "ninguno"}.`;
@@ -83,16 +85,21 @@ export async function buscarProveedoresIA(args: {
 
   // La búsqueda web corre del lado de Anthropic; si se pausa (pause_turn) se reenvía para que continúe.
   for (let vuelta = 0; vuelta < 3; vuelta++) {
-    const respuesta = await client.beta.messages.create({
-      model: MODELO_IA,
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low" },
-      system: SISTEMA,
-      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }, ENTREGAR],
-      messages,
-    });
+    const restante = limite - Date.now();
+    if (restante < 5_000) throw new Anthropic.APIConnectionTimeoutError();
+    const respuesta = await client.beta.messages.create(
+      {
+        model: MODELO_IA,
+        max_tokens: 16000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low" },
+        system: SISTEMA,
+        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5 }, ENTREGAR],
+        messages,
+      },
+      { timeout: restante },
+    );
 
     if (respuesta.stop_reason === "refusal") return [];
     const entrega = respuesta.content.find(
@@ -103,4 +110,37 @@ export async function buscarProveedoresIA(args: {
     messages.push({ role: "assistant", content: respuesta.content });
   }
   return [];
+}
+
+// Traduce el error de la API a un mensaje que diga qué pasó y qué hacer, en vez de un "falló" genérico.
+export function explicarErrorIA(e: unknown): string {
+  const detalle = e instanceof Anthropic.APIError ? String(e.message ?? "").toLowerCase() : "";
+  if (e instanceof Anthropic.APIConnectionTimeoutError) {
+    return "La búsqueda con IA tardó más de lo que permite el servidor (60 s). Probá de nuevo.";
+  }
+  if (e instanceof Anthropic.AuthenticationError) {
+    return "La clave de IA (ANTHROPIC_API_KEY) cargada en Vercel no es válida o fue revocada. Hay que crear una nueva en platform.claude.com y reemplazarla en Vercel.";
+  }
+  if (e instanceof Anthropic.PermissionDeniedError) {
+    return "La cuenta de Anthropic no tiene permiso para esta búsqueda. Revisá en platform.claude.com que la búsqueda web esté habilitada y que la clave tenga acceso al modelo.";
+  }
+  if (e instanceof Anthropic.RateLimitError) {
+    return "Se alcanzó el límite de uso de la cuenta de Anthropic. Probá de nuevo en unos minutos.";
+  }
+  if (e instanceof Anthropic.BadRequestError) {
+    if (detalle.includes("credit balance")) {
+      return "La cuenta de Anthropic se quedó sin crédito. Hay que cargar saldo en platform.claude.com > Billing.";
+    }
+    if (detalle.includes("web search") || detalle.includes("web_search")) {
+      return "La búsqueda web no está habilitada en la cuenta de Anthropic. Activala en platform.claude.com > Settings > Privacy.";
+    }
+    return `La API de IA rechazó el pedido: ${e.message}`;
+  }
+  if (e instanceof Anthropic.APIConnectionError) {
+    return "No se pudo conectar con el servicio de IA. Probá de nuevo en unos minutos.";
+  }
+  if (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500) {
+    return "El servicio de IA está saturado o con problemas. Probá de nuevo en unos minutos.";
+  }
+  return "La búsqueda con IA falló. Probá de nuevo en unos minutos.";
 }
