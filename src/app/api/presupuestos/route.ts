@@ -67,6 +67,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: mensaje }, { status });
   };
 
+  if (!p.archivo) return NextResponse.json({ error: "Este presupuesto se emitió desde la app: no hay archivo para leer." }, { status: 400 });
+
   try {
     const { data: archivo, error: errorDescarga } = await supabase.storage.from("presupuestos").download(p.archivo);
     if (errorDescarga || !archivo) return fallar("No se pudo abrir el archivo guardado.");

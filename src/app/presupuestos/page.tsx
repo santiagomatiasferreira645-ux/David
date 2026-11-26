@@ -78,9 +78,14 @@ export default async function Presupuestos({ searchParams }: { searchParams: Par
               </nav>
             )}
           </div>
-          <Link href="/presupuestos/cargar" className="boton shrink-0">
-            + Cargar
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/presupuestos/emitir" className="boton">
+              Emitir presupuesto
+            </Link>
+            <Link href="/presupuestos/cargar" className="boton-secundario">
+              + Cargar
+            </Link>
+          </div>
         </div>
         <div className="flex gap-2">
           <input
