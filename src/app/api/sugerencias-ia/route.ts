@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buscarProveedoresIA, MODELO_IA, type SugerenciaIA } from "@/lib/ia";
+import { buscarProveedoresIA, explicarErrorIA, MODELO_IA, type SugerenciaIA } from "@/lib/ia";
 import { coincideMarca, variantesMarca } from "@/lib/marcas";
 import { normalizarPn } from "@/lib/pn";
 import { clienteServidor } from "@/lib/supabase/servidor";
@@ -53,6 +53,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ proveedores, fecha: fila?.creado_en ?? new Date().toISOString(), guardada: false });
   } catch (e) {
     console.error("Búsqueda con IA:", e);
-    return NextResponse.json({ error: "La búsqueda con IA falló. Probá de nuevo en unos minutos." }, { status: 502 });
+    return NextResponse.json({ error: explicarErrorIA(e) }, { status: 502 });
   }
 }
