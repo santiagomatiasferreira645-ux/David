@@ -17,7 +17,8 @@ export default async function VerPresupuesto({ params }: { params: { id: string 
   if (!data) notFound();
   const p = data as Presupuesto & { proveedores: { id: string; empresa: string } | null };
   const items = (filas ?? []) as ItemPresupuesto[];
-  const { data: firmado } = await supabase.storage.from("presupuestos").createSignedUrl(p.archivo, 60 * 60);
+  const emitido = p.origen === "emitido";
+  const { data: firmado } = p.archivo ? await supabase.storage.from("presupuestos").createSignedUrl(p.archivo, 60 * 60) : { data: null };
   const repuestos = items.filter((i) => i.clase === "repuesto");
   const servicios = items.filter((i) => i.clase === "servicio");
 
@@ -46,12 +47,24 @@ export default async function VerPresupuesto({ params }: { params: { id: string 
                 Ver archivo
               </a>
             )}
-            <Releer id={p.id} primeraVez={p.estado !== "listo"} />
+            {emitido ? (
+              <>
+                <a href={`/api/presupuestos/emitidos/${p.id}/pdf`} target="_blank" rel="noreferrer" className="boton-secundario">
+                  Ver PDF
+                </a>
+                <Link href={`/presupuestos/emitir?id=${p.id}`} className="boton">
+                  Editar y enviar
+                </Link>
+              </>
+            ) : (
+              <Releer id={p.id} primeraVez={p.estado !== "listo"} />
+            )}
           </div>
         </div>
         {p.estado === "procesando" && <p className="text-sm text-amber-300">Todavía no se leyó con IA (o se cortó a la mitad).</p>}
         {p.error && <p className={`text-sm ${p.estado === "error" ? "text-red-400" : "text-amber-300"}`}>{p.error}</p>}
 
+        {!emitido && (
         <details className="border-t border-borde/60 pt-3">
           <summary className="cursor-pointer text-sm text-acento">Corregir datos del presupuesto</summary>
           <form action={guardarEncabezado.bind(null, p.id)} className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -73,10 +86,11 @@ export default async function VerPresupuesto({ params }: { params: { id: string 
             <button className="boton w-fit">Guardar</button>
           </form>
         </details>
+        )}
       </div>
 
-      <Renglones titulo="Repuestos" presupuestoId={p.id} items={repuestos} />
-      <Renglones titulo="Servicios" presupuestoId={p.id} items={servicios} nota={servicios.length > 0 ? "También figuran en el módulo de Servicios." : undefined} />
+      <Renglones titulo="Repuestos" presupuestoId={p.id} items={repuestos} editable={!emitido} />
+      <Renglones titulo={emitido ? "Mano de obra / servicios" : "Servicios"} presupuestoId={p.id} items={servicios} editable={!emitido} nota={servicios.length > 0 ? "También figuran en el módulo de Servicios." : undefined} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link href="/presupuestos" className="enlace text-sm">
@@ -97,7 +111,7 @@ function Campo({ nombre, etiqueta, valor, tipo = "text" }: { nombre: string; eti
   );
 }
 
-function Renglones({ titulo, presupuestoId, items, nota }: { titulo: string; presupuestoId: number; items: ItemPresupuesto[]; nota?: string }) {
+function Renglones({ titulo, presupuestoId, items, nota, editable }: { titulo: string; presupuestoId: number; items: ItemPresupuesto[]; nota?: string; editable: boolean }) {
   if (!items.length) return null;
   return (
     <section className="tarjeta">
@@ -131,6 +145,7 @@ function Renglones({ titulo, presupuestoId, items, nota }: { titulo: string; pre
                 )}
               </div>
             </div>
+            {editable && (
             <details className="mt-1">
               <summary className="cursor-pointer text-xs secundario hover:text-acento">Corregir</summary>
               <form action={guardarItem.bind(null, presupuestoId, i.id)} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-6">
@@ -152,6 +167,7 @@ function Renglones({ titulo, presupuestoId, items, nota }: { titulo: string; pre
                 </div>
               </form>
             </details>
+            )}
           </li>
         ))}
       </ul>

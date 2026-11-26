@@ -55,8 +55,9 @@ export type Presupuesto = {
   moneda: string | null;
   total: number | null;
   condiciones: string | null;
-  archivo: string;
+  archivo: string | null; // null en los emitidos desde la app
   nombre_archivo: string | null;
+  origen?: "importado" | "emitido";
   estado: "procesando" | "listo" | "error";
   error: string | null;
   notas: string | null;
