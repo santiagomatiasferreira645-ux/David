@@ -25,7 +25,13 @@ Funciona en PC y celular (se puede agregar a la pantalla de inicio). Está hecha
 2. **Datos de la fase 0**: ejecutar en el SQL Editor el archivo generado con
    `npm run importar -- fase0_proveedores.xlsx > importar.sql`.
    Se corre una sola vez. Ese archivo tiene datos de contactos: no lo subas al repositorio.
-3. **Usuarios**: en Supabase, Authentication > Users > Invite user, uno por cada persona. La primera vez se entra con un link por mail, que lleva a Mi cuenta para crear la contraseña; después se entra con mail y contraseña.
+3. **Usuarios**: en Supabase, Authentication > Users > Add user > Create new user, uno por cada persona, con su mail, una contraseña y tildando Auto Confirm User. Se entra solo con mail y contraseña (no se mandan mails); cada uno puede cambiar su contraseña desde Mi cuenta. Si alguien se la olvida, el administrador le pone una nueva desde el SQL Editor de Supabase:
+
+   ```sql
+   update auth.users
+   set encrypted_password = crypt('ContraseñaNueva123', gen_salt('bf'))
+   where email = 'mail@delusuario.com';
+   ```
    En Authentication > URL Configuration, poner la dirección de la app como Site URL.
 4. **Vercel**: importar este repositorio y cargar en Environment Variables
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase > Project Settings > API).
