@@ -78,6 +78,6 @@ function mensajeError(error: string): string {
   const e = error.toLowerCase();
   if (e.includes("different from the old")) return "La contraseña nueva tiene que ser distinta de la anterior.";
   if (e.includes("weak") || e.includes("at least")) return "La contraseña es muy débil. Usá al menos 8 caracteres con letras y números.";
-  if (e.includes("reauthentication")) return "Por seguridad, cerrá sesión, entrá con un link por mail y volvé a intentar.";
+  if (e.includes("reauthentication")) return "Supabase está pidiendo confirmar el cambio por mail. El administrador tiene que desactivar \"Secure password change\" en Supabase (Authentication > Providers > Email).";
   return `No se pudo guardar: ${error}`;
 }
